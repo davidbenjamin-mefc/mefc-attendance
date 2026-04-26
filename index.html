@@ -1,0 +1,3292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEFC Attendance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --border: #e4e7ec;
+    --text: #1f2937;
+    --text-muted: #6b7280;
+    --accent: #1e40af;
+    --accent-light: #dbeafe;
+    --c-830: #3b82f6;
+    --c-1030: #f59e0b;
+    --c-spanish: #10b981;
+    --c-combined: #8b5cf6;
+    --yellow-bg: #fef3c7;
+    --yellow-text: #92400e;
+    --red-bg: #fee2e2;
+    --red-text: #991b1b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+  }
+  header {
+    background: linear-gradient(135deg, #1e40af, #3730a3);
+    color: white;
+    padding: 24px 32px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  header .header-main { flex: 1; }
+  header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  header p { opacity: 0.85; font-size: 13px; }
+
+  /* Auth area in the top-right */
+  .auth-area { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .auth-area .sync-status { font-size: 11px; opacity: 0.8; text-align: right; }
+  .auth-area .sync-status .sync-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #34d399; margin-right: 5px; vertical-align: middle;
+  }
+  .auth-area .sync-status.offline .sync-dot { background: #f87171; }
+  .auth-area .sync-status.local   .sync-dot { background: #fbbf24; }
+  .signin-btn {
+    background: white;
+    color: #1e3a8a;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
+  .signin-btn:hover { background: #f3f4f6; }
+  .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.12);
+    padding: 4px 4px 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+  .user-menu img { width: 28px; height: 28px; border-radius: 50%; }
+  .user-menu .user-email { opacity: 0.9; }
+  .user-menu .signout-btn {
+    background: transparent; border: none; color: white;
+    cursor: pointer; font-size: 14px; opacity: 0.7; padding: 0 4px;
+  }
+  .user-menu .signout-btn:hover { opacity: 1; }
+
+  /* Hide editor-only UI when not an editor */
+  body:not(.is-editor) .editor-only { display: none !important; }
+  body:not(.is-editor) .row-edit,
+  body:not(.is-editor) .row-delete,
+  body:not(.is-editor) .row-special { display: none !important; }
+  body.is-editor .viewer-only { display: none !important; }
+
+  /* Migration banner */
+  .migrate-banner {
+    background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    font-size: 13px;
+  }
+  .migrate-banner strong { color: #92400e; }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .section {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .field select, .field input, .field button {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .field input[type="number"] { width: 90px; }
+  .field input[type="date"] { min-width: 140px; }
+  button {
+    cursor: pointer;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  button:hover { background: #f9fafb; border-color: #d1d5db; }
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  button.primary:hover { background: #1e3a8a; }
+  button.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+  button.ghost:hover { background: #f3f4f6; color: var(--text); }
+
+  /* Widgets */
+  .widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .widget {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    position: relative;
+    /* overflow visible so help tooltip can pop out */
+  }
+  .widget::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 10px 0 0 10px;
+  }
+  .widget-help {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    line-height: 1;
+    user-select: none;
+    transition: background 0.12s, color 0.12s;
+  }
+  .widget-help:hover,
+  .widget-help:focus { background: var(--accent-light); color: var(--accent); outline: none; }
+  .widget-help-tip {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    width: 260px;
+    padding: 10px 12px;
+    background: #1f2937;
+    color: #f9fafb;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+    pointer-events: none;
+    z-index: 50;
+    white-space: normal;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  }
+  .widget-help-tip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    right: 6px;
+    border: 6px solid transparent;
+    border-bottom-color: #1f2937;
+  }
+  .widget-help:hover .widget-help-tip,
+  .widget-help:focus .widget-help-tip { opacity: 1; visibility: visible; transform: translateY(0); }
+  .widget.c-830::before { background: var(--c-830); }
+  .widget.c-1030::before { background: var(--c-1030); }
+  .widget.c-spanish::before { background: var(--c-spanish); }
+  .widget.c-combined::before { background: var(--c-combined); }
+  .widget-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .widget-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .widget-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Capacity legend */
+  .capacity-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: #f9fafb;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  tr:hover td { background: #f9fafb; }
+  .cap-yellow { background: var(--yellow-bg) !important; color: var(--yellow-text); font-weight: 600; }
+  .cap-red { background: var(--red-bg) !important; color: var(--red-text); font-weight: 600; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  .muted { color: var(--text-muted); }
+  .note-cell { font-size: 12px; color: var(--text-muted); font-style: italic; }
+  .anomaly-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-right: 4px;
+    cursor: help;
+  }
+  .anomaly-badge.high { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+  .anomaly-badge.low  { background: #dbeafe; color: #1e3a8a; border: 1px solid #3b82f6; }
+  .col-actions { width: 104px; text-align: center; padding: 0 4px !important; white-space: nowrap; }
+  .row-delete, .row-special, .row-edit {
+    padding: 2px 6px;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-weight: 600;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+  }
+  .row-delete { font-size: 16px; }
+  tr:hover .row-delete, tr:hover .row-special, tr:hover .row-edit { opacity: 1; }
+  .row-delete:hover { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  .row-edit:hover { background: #e0e7ff; color: #3730a3; border-color: #a5b4fc; }
+  .row-special:hover { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
+  .row-special.is-special { opacity: 1; color: #d97706; }
+  .row-special.is-special:hover { background: #fef3c7; }
+  .special-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-right: 4px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+    cursor: help;
+  }
+  tr.is-special { background: #fffbeb; }
+  tr.is-special:hover { background: #fef3c7; }
+
+  /* Charts */
+  .chart-container { position: relative; height: 340px; }
+  .chart-container.tall { height: 400px; }
+
+  /* Admin form */
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 4px 0;
+    user-select: none;
+  }
+  details[open] summary { margin-bottom: 12px; }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: #059669; }
+  .toast.error { background: #dc2626; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.55);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h3 {
+    font-size: 17px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .warning-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--red-bg);
+    color: var(--red-text);
+    font-weight: 700;
+    font-size: 16px;
+    border: 1px solid #fca5a5;
+  }
+  .modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+  .conflict-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .conflict-table th, .conflict-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .conflict-table th {
+    background: #f9fafb;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .conflict-table .col-old { color: var(--text-muted); }
+  .conflict-table .col-new { font-weight: 600; color: var(--accent); }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+  }
+  .btn-danger {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+  }
+  .btn-danger:hover { background: #b91c1c; }
+
+  .hstack { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1; }
+
+  @media (max-width: 640px) {
+    main { padding: 12px; }
+    header { padding: 16px; }
+    .section { padding: 14px; }
+    .widget-value { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-main">
+    <h1>MEFC Attendance Dashboard</h1>
+    <p>Tracking Sunday service attendance — worship center capacity: 248 (comfortable) / 284 (expanded)</p>
+  </div>
+  <div class="auth-area" id="auth-area">
+    <div class="sync-status" id="sync-status" title="">
+      <span class="sync-dot"></span><span id="sync-status-text">Loading…</span>
+    </div>
+    <button class="signin-btn" id="signin-btn" onclick="app.signIn()" style="display:none">Sign in to edit</button>
+    <div class="user-menu" id="user-menu" style="display:none">
+      <img id="user-avatar" alt="" src="">
+      <span class="user-email" id="user-email-display"></span>
+      <button class="signout-btn" onclick="app.signOut()" title="Sign out">&times;</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div id="migrate-banner" class="migrate-banner editor-only" style="display:none">
+    <div>
+      <strong>Your local data hasn't been migrated yet.</strong>
+      <div style="margin-top:3px">The Google Sheet is connected but empty. Click to push your current records to it — this makes them visible to everyone.</div>
+    </div>
+    <button class="primary" onclick="app.migrateLocalDataToSheet()">Migrate to sheet</button>
+  </div>
+
+  <section class="section">
+    <div class="section-title">
+      Filters
+      <button class="ghost" onclick="app.resetFilters()">Clear filters</button>
+    </div>
+    <div class="filter-bar">
+      <div class="field">
+        <label>Year</label>
+        <select id="filter-year" onchange="app.applyFilters()"></select>
+      </div>
+      <div class="field">
+        <label>From</label>
+        <input type="date" id="filter-from" onchange="app.applyFilters()">
+      </div>
+      <div class="field">
+        <label>To</label>
+        <input type="date" id="filter-to" onchange="app.applyFilters()">
+      </div>
+      <div class="field">
+        <label>Attendance Mode</label>
+        <select id="toggle-nursery-mode" onchange="app.applyFilters()">
+          <option value="with" selected>With nursery</option>
+          <option value="without">Without nursery</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Special Services <span class="widget-help" tabindex="0" style="margin-left:4px">?<span class="widget-help-tip">Services like Easter, Christmas, or baptisms with unusually high attendance. Exclude them to keep trends and averages representative of typical weeks. Star any row in the table to mark it special.</span></span></label>
+        <select id="filter-specials" onchange="app.applyFilters()">
+          <option value="exclude" selected>Exclude from stats</option>
+          <option value="include">Include in stats</option>
+        </select>
+        <span style="font-size:11px;color:var(--text-muted);margin-top:2px">Marked: <span id="special-count">0</span></span>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <div class="hstack">
+          <button onclick="app.exportCSV()">Export CSV</button>
+          <button onclick="document.getElementById('import-file').click()">Import CSV</button>
+          <input type="file" id="import-file" style="display:none" accept=".csv" onchange="app.importCSV(event)">
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:10px">
+      Nursery attendance started being tracked separately on Dec 21, 2025. For earlier weeks, nursery is rolled into the main count (toggle has no effect on those weeks).
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      Key Metrics
+      <span class="section-sub">12-month windows are rolling from today</span>
+    </div>
+    <div class="widgets" id="widgets"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      Trend Insights
+      <span class="section-sub">Based on the most recent 12 weeks of data</span>
+    </div>
+    <div class="widgets" id="trend-widgets"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      Attendance Over Time
+      <span class="section-sub" style="display:flex;gap:14px;align-items:center">
+        <label style="font-weight:400;cursor:pointer"><input type="checkbox" id="show-trends" onchange="app.renderTimeseries()" style="margin-right:4px;vertical-align:middle"> Show trend lines</label>
+        <label style="font-weight:400">Fit trend to:
+          <select id="trend-window" onchange="app.renderTimeseries()" style="margin-left:4px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:white">
+            <option value="12">Last 12 weeks</option>
+            <option value="26" selected>Last 6 months</option>
+            <option value="52">Last year</option>
+            <option value="all">All visible</option>
+          </select>
+        </label>
+      </span>
+    </div>
+    <div class="chart-container tall"><canvas id="chart-timeseries"></canvas></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      Monthly Average Attendance
+      <span class="section-sub">All years combined</span>
+    </div>
+    <div class="chart-container"><canvas id="chart-monthly"></canvas></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      Year-Over-Year Comparison
+      <div class="hstack">
+        <label style="font-size:12px;color:var(--text-muted);font-weight:500">Service:</label>
+        <select id="yoy-service" onchange="app.renderYoY()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+          <option value="8:30">8:30 AM English</option>
+          <option value="10:30">10:30 AM English</option>
+          <option value="Spanish">Spanish</option>
+          <option value="Combined" selected>Combined (all services)</option>
+        </select>
+      </div>
+    </div>
+    <div class="chart-container tall"><canvas id="chart-yoy"></canvas></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      Service-by-Service Table
+      <span class="section-sub" id="table-count"></span>
+    </div>
+    <div class="capacity-legend" style="margin-bottom:12px">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--yellow-bg);border:1px solid #fbbf24"></div>≥70% of 248 (≥174)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--red-bg);border:1px solid #f87171"></div>≥80% of 248 (≥199)</div>
+    </div>
+    <div class="table-wrap">
+      <table id="attendance-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Service</th>
+            <th class="num">Attendance</th>
+            <th class="num">Nursery</th>
+            <th class="num">Total</th>
+            <th class="num">% of 248</th>
+            <th class="num">% of 284</th>
+            <th>Notes</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="attendance-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section editor-only">
+    <details>
+      <summary>+ Add New Service Data</summary>
+      <div class="admin-grid">
+        <div class="field">
+          <label>Date (Sunday)</label>
+          <input type="date" id="add-date">
+        </div>
+        <div class="field">
+          <label>8:30 Attendance</label>
+          <input type="number" id="add-830" min="0" placeholder="—">
+        </div>
+        <div class="field">
+          <label>8:30 Nursery</label>
+          <input type="number" id="add-830-nursery" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label>10:30 Attendance</label>
+          <input type="number" id="add-1030" min="0" placeholder="—">
+        </div>
+        <div class="field">
+          <label>10:30 Nursery</label>
+          <input type="number" id="add-1030-nursery" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Spanish Attendance</label>
+          <input type="number" id="add-spanish" min="0" placeholder="—">
+        </div>
+        <div class="field">
+          <label>Spanish Nursery</label>
+          <input type="number" id="add-spanish-nursery" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Notes (optional)</label>
+          <input type="text" id="add-notes" placeholder="e.g., Easter, Bilingual">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="primary" onclick="app.addEntry()">Add entry</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px">
+        Enter attendance <em>without</em> nursery in the Attendance fields, and enter nursery counts separately. Leave a service blank if it wasn't held. Data is saved in this browser — use "Export CSV" to back up or share.
+      </p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:6px">
+        User-added entries: <span id="user-added-count">0</span> — <button class="ghost" onclick="app.clearUserEntries()" style="padding:2px 8px;font-size:12px">Clear all user entries</button>
+      </p>
+      <p id="restore-deleted-btn" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none">
+        Deleted entries: <span id="deleted-count">0</span> — <button class="ghost" onclick="app.restoreDeletedEntries()" style="padding:2px 8px;font-size:12px">Restore all deleted entries</button>
+      </p>
+      <p id="resume-migrate-btn" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none">
+        <strong>Resume migration:</strong> your local browser has records that may not all be in the sheet yet.
+        <button class="ghost" onclick="app.migrateLocalDataToSheet()" style="padding:2px 8px;font-size:12px">Push local data to sheet</button>
+        <br><span style="opacity:0.75">Safe to run anytime — existing rows are left alone (idempotent upsert).</span>
+      </p>
+    </details>
+  </section>
+
+</main>
+
+<div class="modal-overlay" id="conflict-modal">
+  <div class="modal">
+    <h3><span class="warning-badge">!</span> Data already exists for this date</h3>
+    <p>You already have attendance recorded for <strong id="conflict-date"></strong>. Review the comparison below before deciding whether to overwrite.</p>
+    <table class="conflict-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th class="col-old">Existing</th>
+          <th class="col-new">New</th>
+        </tr>
+      </thead>
+      <tbody id="conflict-rows"></tbody>
+    </table>
+    <p>Only services with existing data are shown. Any non-conflicting new entries for this date will also be saved.</p>
+    <div class="modal-actions">
+      <button onclick="app.cancelOverwrite()">Cancel</button>
+      <button class="btn-danger" onclick="app.confirmOverwrite()">Overwrite existing data</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>Edit service entry</h3>
+    <p id="edit-original-label" style="font-size:12px;color:var(--text-muted);margin-bottom:12px"></p>
+    <div class="admin-grid" style="grid-template-columns: 1fr 1fr">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <input type="text" id="edit-time" placeholder="e.g. 4:00 PM" list="edit-time-suggest">
+        <datalist id="edit-time-suggest">
+          <option value="8:30 AM"></option>
+          <option value="10:30 AM"></option>
+          <option value="11:00 AM"></option>
+          <option value="4:00 PM"></option>
+          <option value="6:00 PM"></option>
+          <option value="7:00 PM"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select id="edit-type">
+          <option value="English">English</option>
+          <option value="Spanish">Spanish</option>
+          <option value="Bilingual">Bilingual</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Count</label>
+        <input type="number" id="edit-count" min="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Nursery</label>
+        <input type="number" id="edit-nursery" min="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <input type="text" id="edit-notes" placeholder="Optional">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="app.cancelEdit()">Cancel</button>
+      <button class="primary" onclick="app.saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// -------------- Embedded seed data --------------
+const SEED_CSV = `Event,Date,Time,Type,Count,Notes
+Sunday Service,September 18 2022,8:30 AM,English,123,
+Sunday Service,September 18 2022,10:30 AM,English,184,
+Sunday Service,September 18 2022,10:30 AM,Spanish,42,
+Sunday Service,September 25 2022,8:30 AM,English,111,
+Sunday Service,September 25 2022,10:30 AM,English,170,Corrected from 270 (likely data entry typo; neighboring weeks averaged ~180)
+Sunday Service,September 25 2022,10:30 AM,Spanish,32,
+Sunday Service,October 2 2022,8:30 AM,English,114,
+Sunday Service,October 2 2022,10:30 AM,English,167,
+Sunday Service,October 2 2022,10:30 AM,Spanish,32,
+Sunday Service,October 9 2022,8:30 AM,English,108,
+Sunday Service,October 9 2022,10:30 AM,English,178,
+Sunday Service,October 9 2022,10:30 AM,Spanish,37,
+Sunday Service,October 16 2022,8:30 AM,English,122,
+Sunday Service,October 16 2022,10:30 AM,English,192,
+Sunday Service,October 16 2022,10:30 AM,Spanish,30,
+Sunday Service,October 23 2022,8:30 AM,English,89,
+Sunday Service,October 23 2022,10:30 AM,English,165,
+Sunday Service,October 23 2022,10:30 AM,Spanish,29,
+Sunday Service,October 30 2022,8:30 AM,English,110,
+Sunday Service,October 30 2022,10:30 AM,English,163,
+Sunday Service,October 30 2022,10:30 AM,Spanish,31,
+Sunday Service,November 6 2022,8:30 AM,English,110,
+Sunday Service,November 6 2022,10:30 AM,English,179,
+Sunday Service,November 6 2022,10:30 AM,Spanish,0,
+Sunday Service,November 13 2022,8:30 AM,English,103,
+Sunday Service,November 13 2022,10:30 AM,English,206,
+Sunday Service,November 13 2022,10:30 AM,Spanish,0,
+Sunday Service,November 20 2022,8:30 AM,English,91,
+Sunday Service,November 20 2022,10:30 AM,English,203,
+Sunday Service,November 20 2022,10:30 AM,Spanish,30,
+Sunday Service,November 27 2022,8:30 AM,English,105,
+Sunday Service,November 27 2022,10:30 AM,English,142,
+Sunday Service,November 27 2022,10:30 AM,Spanish,31,
+Sunday Service,December 4 2022,8:30 AM,English,92,
+Sunday Service,December 4 2022,10:30 AM,English,181,
+Sunday Service,December 4 2022,10:30 AM,Spanish,30,
+Sunday Service,December 11 2022,8:30 AM,English,114,
+Sunday Service,December 11 2022,10:30 AM,English,225,
+Sunday Service,December 11 2022,10:30 AM,Spanish,35,
+Sunday Service,December 18 2022,8:30 AM,English,105,
+Sunday Service,December 18 2022,10:30 AM,English,148,
+Sunday Service,December 18 2022,10:30 AM,Spanish,27,
+Sunday Service,December 25 2022,8:30 AM,English,0,
+Sunday Service,December 25 2022,10:30 AM,English,140,
+Sunday Service,December 25 2022,10:30 AM,Spanish,0,
+Sunday Service,January 1 2023,8:30 AM,English,0,
+Sunday Service,January 1 2023,10:30 AM,English,164,
+Sunday Service,January 1 2023,10:30 AM,Spanish,18,
+Sunday Service,January 8 2023,8:30 AM,English,130,
+Sunday Service,January 8 2023,10:30 AM,English,0,
+Sunday Service,January 8 2023,10:30 AM,Spanish,32,
+Sunday Service,January 15 2023,8:30 AM,English,100,
+Sunday Service,January 15 2023,10:30 AM,English,183,
+Sunday Service,January 15 2023,10:30 AM,Spanish,31,
+Sunday Service,January 22 2023,8:30 AM,English,90,
+Sunday Service,January 22 2023,10:30 AM,English,169,
+Sunday Service,January 22 2023,10:30 AM,Spanish,39,
+Sunday Service,January 29 2023,8:30 AM,English,135,
+Sunday Service,January 29 2023,10:30 AM,English,141,
+Sunday Service,January 29 2023,10:30 AM,Spanish,33,
+Sunday Service,February 5 2023,8:30 AM,English,115,
+Sunday Service,February 5 2023,10:30 AM,English,186,
+Sunday Service,February 5 2023,10:30 AM,Spanish,31,
+Sunday Service,February 12 2023,8:30 AM,English,125,
+Sunday Service,February 12 2023,10:30 AM,English,190,
+Sunday Service,February 12 2023,10:30 AM,Spanish,31,
+Sunday Service,February 19 2023,8:30 AM,English,128,
+Sunday Service,February 19 2023,10:30 AM,English,155,
+Sunday Service,February 19 2023,10:30 AM,Spanish,20,
+Sunday Service,February 26 2023,8:30 AM,English,115,
+Sunday Service,February 26 2023,10:30 AM,English,171,
+Sunday Service,February 26 2023,10:30 AM,Spanish,21,
+Sunday Service,March 05 2023,8:30 AM,English,115,
+Sunday Service,March 05 2023,10:30 AM,English,170,
+Sunday Service,March 05 2023,10:30 AM,Spanish,29,
+Sunday Service,March 12 2023,8:30 AM,English,0,
+Sunday Service,March 12 2023,10:30 AM,English,146,
+Sunday Service,March 12 2023,10:30 AM,Spanish,32,
+Sunday Service,March 19 2023,8:30 AM,English,106,
+Sunday Service,March 19 2023,10:30 AM,English,195,
+Sunday Service,March 19 2023,10:30 AM,Spanish,0,
+Sunday Service,March 26 2023,8:30 AM,English,116,
+Sunday Service,March 26 2023,10:30 AM,English,213,
+Sunday Service,March 26 2023,10:30 AM,Spanish,33,
+Sunday Service,April 02 2023,8:30 AM,English,110,
+Sunday Service,April 02 2023,10:30 AM,English,206,
+Sunday Service,April 02 2023,10:30 AM,Spanish,27,
+Sunday Service,April 09 2023,8:30 AM,English,255,Easter
+Sunday Service,April 09 2023,10:30 AM,English,275,Easter
+Sunday Service,April 09 2023,10:30 AM,Spanish,41,Easter
+Sunday Service,April 16 2023,8:30 AM,English,102,
+Sunday Service,April 16 2023,10:30 AM,English,144,
+Sunday Service,April 16 2023,10:30 AM,Spanish,26,
+Sunday Service,April 23 2023,8:30 AM,English,175,
+Sunday Service,April 23 2023,10:30 AM,English,234,
+Sunday Service,April 23 2023,10:30 AM,Spanish,0,
+Sunday Service,April 30 2023,8:30 AM,English,142,
+Sunday Service,April 30 2023,10:30 AM,English,147,
+Sunday Service,April 30 2023,10:30 AM,Spanish,32,
+Sunday Service,May 07 2023,8:30 AM,English,107,
+Sunday Service,May 07 2023,10:30 AM,English,162,
+Sunday Service,May 07 2023,10:30 AM,Spanish,25,
+Sunday Service,May 14 2023,8:30 AM,English,128,
+Sunday Service,May 14 2023,10:30 AM,English,120,
+Sunday Service,May 14 2023,10:30 AM,Spanish,26,
+Sunday Service,May 21 2023,8:30 AM,English,102,
+Sunday Service,May 21 2023,10:30 AM,English,163,
+Sunday Service,May 21 2023,10:30 AM,Spanish,26,
+Sunday Service,May 28 2023,8:30 AM,English,210,
+Sunday Service,May 28 2023,10:30 AM,English,0,
+Sunday Service,May 28 2023,10:30 AM,Spanish,29,
+Sunday Service,June 04 2023,8:30 AM,English,290,
+Sunday Service,June 04 2023,10:30 AM,English,0,
+Sunday Service,June 04 2023,10:30 AM,Spanish,0,
+Sunday Service,June 11 2023,8:30 AM,English,240,
+Sunday Service,June 11 2023,10:30 AM,English,0,
+Sunday Service,June 11 2023,10:30 AM,Spanish,33,
+Sunday Service,June 18 2023,8:30 AM,English,0,
+Sunday Service,June 18 2023,10:30 AM,English,0,
+Sunday Service,June 18 2023,10:30 AM,Spanish,0,
+Sunday Service,June 25 2023,8:30 AM,English,210,
+Sunday Service,June 25 2023,10:30 AM,English,0,
+Sunday Service,June 25 2023,10:30 AM,Spanish,33,
+Sunday Service,July 02 2023,8:30 AM,English,190,
+Sunday Service,July 02 2023,10:30 AM,English,0,
+Sunday Service,July 02 2023,10:30 AM,Spanish,31,
+Sunday Service,July 09 2023,8:30 AM,English,0,
+Sunday Service,July 09 2023,10:30 AM,English,0,
+Sunday Service,July 09 2023,10:30 AM,Spanish,0,
+Sunday Service,July 16 2023,8:30 AM,English,240,
+Sunday Service,July 16 2023,10:30 AM,English,0,
+Sunday Service,July 16 2023,10:30 AM,Spanish,33,
+Sunday Service,July 23 2023,8:30 AM,English,255,
+Sunday Service,July 23 2023,10:30 AM,English,0,
+Sunday Service,July 23 2023,10:30 AM,Spanish,28,
+Sunday Service,July 30 2023,8:30 AM,English,254,
+Sunday Service,July 30 2023,10:30 AM,English,0,
+Sunday Service,July 30 2023,10:30 AM,Spanish,33,
+Sunday Service,August 06 2023,8:30 AM,English,240,
+Sunday Service,August 06 2023,10:30 AM,English,0,
+Sunday Service,August 06 2023,10:30 AM,Spanish,33,
+Sunday Service,August 13 2023,8:30 AM,English,274,
+Sunday Service,August 13 2023,10:30 AM,English,0,
+Sunday Service,August 13 2023,10:30 AM,Spanish,27,
+Sunday Service,August 20 2023,8:30 AM,English,223,
+Sunday Service,August 20 2023,10:30 AM,English,0,
+Sunday Service,August 20 2023,10:30 AM,Spanish,26,
+Sunday Service,August 27 2023,8:30 AM,English,225,
+Sunday Service,August 27 2023,10:30 AM,English,0,
+Sunday Service,August 27 2023,10:30 AM,Spanish,32,
+Sunday Service,September 03 2023,8:30 AM,English,252,
+Sunday Service,September 03 2023,10:30 AM,English,0,
+Sunday Service,September 03 2023,10:30 AM,Spanish,0,
+Sunday Service,September 10 2023,8:30 AM,English,161,
+Sunday Service,September 10 2023,10:30 AM,English,164,
+Sunday Service,September 10 2023,10:30 AM,Spanish,35,
+Sunday Service,September 17 2023,8:30 AM,English,112,
+Sunday Service,September 17 2023,10:30 AM,English,202,
+Sunday Service,September 17 2023,10:30 AM,Spanish,30,
+Sunday Service,September 24 2023,8:30 AM,English,130,
+Sunday Service,September 24 2023,10:30 AM,English,186,
+Sunday Service,September 24 2023,10:30 AM,Spanish,24,
+Sunday Service,October 01 2023,8:30 AM,English,132,
+Sunday Service,October 01 2023,10:30 AM,English,203,
+Sunday Service,October 01 2023,10:30 AM,Spanish,36,
+Sunday Service,October 08 2023,8:30 AM,English,128,
+Sunday Service,October 08 2023,10:30 AM,English,191,
+Sunday Service,October 08 2023,10:30 AM,Spanish,37,
+Sunday Service,October 15 2023,8:30 AM,English,151,
+Sunday Service,October 15 2023,10:30 AM,English,224,
+Sunday Service,October 15 2023,10:30 AM,Spanish,0,
+Sunday Service,October 22 2023,8:30 AM,English,108,
+Sunday Service,October 22 2023,10:30 AM,English,151,
+Sunday Service,October 22 2023,10:30 AM,Spanish,30,
+Sunday Service,October 29 2023,8:30 AM,English,119,
+Sunday Service,October 29 2023,10:30 AM,English,182,
+Sunday Service,October 29 2023,10:30 AM,Spanish,27,
+Sunday Service,November 05 2023,8:30 AM,English,143,
+Sunday Service,November 05 2023,10:30 AM,English,180,
+Sunday Service,November 05 2023,10:30 AM,Spanish,0,
+Sunday Service,November 12 2023,8:30 AM,English,145,
+Sunday Service,November 12 2023,10:30 AM,English,182,
+Sunday Service,November 12 2023,10:30 AM,Spanish,49,
+Sunday Service,November 19 2023,8:30 AM,English,118,
+Sunday Service,November 19 2023,10:30 AM,English,185,
+Sunday Service,November 19 2023,10:30 AM,Spanish,43,
+Sunday Service,November 26 2023,8:30 AM,English,130,
+Sunday Service,November 26 2023,10:30 AM,English,154,
+Sunday Service,November 26 2023,10:30 AM,Spanish,34,
+Sunday Service,December 03 2023,8:30 AM,English,130,
+Sunday Service,December 03 2023,10:30 AM,English,160,
+Sunday Service,December 03 2023,10:30 AM,Spanish,36,
+Sunday Service,December 10 2023,8:30 AM,English,135,
+Sunday Service,December 10 2023,10:30 AM,English,182,
+Sunday Service,December 10 2023,10:30 AM,Spanish,30,
+Sunday Service,December 17 2023,8:30 AM,English,152,
+Sunday Service,December 17 2023,10:30 AM,English,186,
+Sunday Service,December 17 2023,10:30 AM,Spanish,38,
+Sunday Service,December 24 2023,8:30 AM,English,385,Christmas Eve
+Sunday Service,December 24 2023,10:30 AM,English,140,
+Sunday Service,December 24 2023,10:30 AM,Spanish,0,
+Sunday Service,December 31 2023,8:30 AM,English,0,
+Sunday Service,December 31 2023,10:30 AM,English,211,
+Sunday Service,December 31 2023,10:30 AM,Spanish,27,
+Sunday Service,January 07 2024,8:30 AM,English,115,
+Sunday Service,January 07 2024,10:30 AM,English,134,
+Sunday Service,January 07 2024,10:30 AM,Spanish,27,
+Sunday Service,January 14 2024,8:30 AM,English,0,
+Sunday Service,January 14 2024,10:30 AM,English,175,
+Sunday Service,January 14 2024,10:30 AM,Spanish,33,
+Sunday Service,January 21 2024,8:30 AM,English,113,
+Sunday Service,January 21 2024,10:30 AM,English,185,
+Sunday Service,January 21 2024,10:30 AM,Spanish,32,
+Sunday Service,January 28 2024,8:30 AM,English,114,
+Sunday Service,January 28 2024,10:30 AM,English,170,
+Sunday Service,January 28 2024,10:30 AM,Spanish,34,
+Sunday Service,February 04 2024,8:30 AM,English,117,
+Sunday Service,February 04 2024,10:30 AM,English,170,
+Sunday Service,February 04 2024,10:30 AM,Spanish,33,
+Sunday Service,February 11 2024,8:30 AM,English,137,
+Sunday Service,February 11 2024,10:30 AM,English,203,
+Sunday Service,February 11 2024,10:30 AM,Spanish,0,
+Sunday Service,February 18 2024,8:30 AM,English,117,
+Sunday Service,February 18 2024,10:30 AM,English,182,
+Sunday Service,February 18 2024,10:30 AM,Spanish,0,
+Sunday Service,February 25 2024,8:30 AM,English,140,
+Sunday Service,February 25 2024,10:30 AM,English,162,
+Sunday Service,February 25 2024,10:30 AM,Spanish,0,
+Sunday Service,March 03 2024,8:30 AM,English,150,
+Sunday Service,March 03 2024,10:30 AM,English,193,
+Sunday Service,March 03 2024,10:30 AM,Spanish,0,
+Sunday Service,March 10 2024,8:30 AM,English,118,
+Sunday Service,March 10 2024,10:30 AM,English,194,
+Sunday Service,March 10 2024,10:30 AM,Spanish,0,
+Sunday Service,March 17 2024,8:30 AM,English,132,
+Sunday Service,March 17 2024,10:30 AM,English,151,
+Sunday Service,March 17 2024,10:30 AM,Spanish,0,
+Sunday Service,March 24 2024,8:30 AM,English,135,
+Sunday Service,March 24 2024,10:30 AM,English,0,
+Sunday Service,March 24 2024,10:30 AM,Spanish,0,
+Sunday Service,March 31 2024,8:30 AM,English,0,Easter
+Sunday Service,March 31 2024,10:30 AM,English,0,Easter
+Sunday Service,March 31 2024,10:30 AM,Spanish,0,Easter
+Sunday Service,April 07 2024,8:30 AM,English,115,
+Sunday Service,April 07 2024,10:30 AM,English,261,
+Sunday Service,April 07 2024,10:30 AM,Spanish,0,
+Sunday Service,April 14 2024,8:30 AM,English,143,
+Sunday Service,April 14 2024,10:30 AM,English,162,
+Sunday Service,April 14 2024,10:30 AM,Spanish,48,
+Sunday Service,April 21 2024,8:30 AM,English,198,
+Sunday Service,April 21 2024,10:30 AM,English,202,
+Sunday Service,April 21 2024,10:30 AM,Spanish,24,
+Sunday Service,April 28 2024,8:30 AM,English,150,
+Sunday Service,April 28 2024,10:30 AM,English,184,
+Sunday Service,April 28 2024,10:30 AM,Spanish,33,
+Sunday Service,May 05 2024,8:30 AM,English,154,
+Sunday Service,May 05 2024,10:30 AM,English,196,
+Sunday Service,May 05 2024,10:30 AM,Spanish,36,
+Sunday Service,May 12 2024,8:30 AM,English,132,
+Sunday Service,May 12 2024,10:30 AM,English,188,
+Sunday Service,May 12 2024,10:30 AM,Spanish,33,
+Sunday Service,May 19 2024,8:30 AM,English,113,
+Sunday Service,May 19 2024,10:30 AM,English,173,
+Sunday Service,May 19 2024,10:30 AM,Spanish,34,
+Sunday Service,May 26 2024,8:30 AM,English,0,
+Sunday Service,May 26 2024,10:30 AM,English,251,
+Sunday Service,May 26 2024,10:30 AM,Spanish,31,
+Sunday Service,June 02 2024,8:30 AM,English,210,
+Sunday Service,June 02 2024,10:30 AM,English,0,
+Sunday Service,June 02 2024,10:30 AM,Spanish,34,
+Sunday Service,June 09 2024,8:30 AM,English,248,
+Sunday Service,June 09 2024,10:30 AM,English,0,
+Sunday Service,June 09 2024,10:30 AM,Spanish,33,
+Sunday Service,June 16 2024,8:30 AM,English,249,
+Sunday Service,June 16 2024,10:30 AM,English,0,
+Sunday Service,June 16 2024,10:30 AM,Spanish,31,
+Sunday Service,June 23 2024,8:30 AM,English,285,
+Sunday Service,June 23 2024,10:30 AM,English,0,
+Sunday Service,June 23 2024,10:30 AM,Spanish,38,
+Sunday Service,June 30 2024,8:30 AM,English,300,
+Sunday Service,June 30 2024,10:30 AM,English,0,
+Sunday Service,June 30 2024,10:30 AM,Spanish,0,
+Sunday Service,July 07 2024,8:30 AM,English,230,
+Sunday Service,July 07 2024,10:30 AM,English,0,
+Sunday Service,July 07 2024,10:30 AM,Spanish,32,
+Sunday Service,July 14 2024,8:30 AM,English,259,
+Sunday Service,July 14 2024,10:30 AM,English,0,
+Sunday Service,July 14 2024,10:30 AM,Spanish,34,
+Sunday Service,July 21 2024,8:30 AM,English,285,
+Sunday Service,July 21 2024,10:30 AM,English,0,
+Sunday Service,July 21 2024,10:30 AM,Spanish,38,
+Sunday Service,July 28 2024,8:30 AM,English,212,
+Sunday Service,July 28 2024,10:30 AM,English,0,
+Sunday Service,July 28 2024,10:30 AM,Spanish,37,
+Sunday Service,August 04 2024,8:30 AM,English,230,
+Sunday Service,August 04 2024,10:30 AM,English,0,
+Sunday Service,August 04 2024,10:30 AM,Spanish,27,
+Sunday Service,August 11 2024,8:30 AM,English,252,
+Sunday Service,August 11 2024,10:30 AM,English,0,
+Sunday Service,August 11 2024,10:30 AM,Spanish,31,
+Sunday Service,August 18 2024,8:30 AM,English,251,
+Sunday Service,August 18 2024,10:30 AM,English,0,
+Sunday Service,August 18 2024,10:30 AM,Spanish,31,
+Sunday Service,August 25 2024,8:30 AM,English,290,
+Sunday Service,August 25 2024,10:30 AM,English,0,
+Sunday Service,August 25 2024,10:30 AM,Spanish,0,
+Sunday Service,September 01 2024,8:30 AM,English,225,
+Sunday Service,September 01 2024,10:30 AM,English,0,
+Sunday Service,September 01 2024,10:30 AM,Spanish,0,
+Sunday Service,September 08 2024,8:30 AM,English,178,
+Sunday Service,September 08 2024,10:30 AM,English,201,
+Sunday Service,September 08 2024,10:30 AM,Spanish,31,
+Sunday Service,September 15 2024,8:30 AM,English,164,
+Sunday Service,September 15 2024,10:30 AM,English,169,
+Sunday Service,September 15 2024,10:30 AM,Spanish,30,
+Sunday Service,September 22 2024,8:30 AM,English,150,
+Sunday Service,September 22 2024,10:30 AM,English,231,
+Sunday Service,September 22 2024,10:30 AM,Spanish,45,
+Sunday Service,September 29 2024,8:30 AM,English,138,
+Sunday Service,September 29 2024,10:30 AM,English,182,
+Sunday Service,September 29 2024,10:30 AM,Spanish,33,
+Sunday Service,October 06 2024,8:30 AM,English,152,
+Sunday Service,October 06 2024,10:30 AM,English,141,
+Sunday Service,October 06 2024,10:30 AM,Spanish,37,
+Sunday Service,October 13 2024,8:30 AM,English,185,
+Sunday Service,October 13 2024,10:30 AM,English,204,
+Sunday Service,October 13 2024,10:30 AM,Spanish,48,
+Sunday Service,October 20 2024,8:30 AM,English,129,
+Sunday Service,October 20 2024,10:30 AM,English,186,
+Sunday Service,October 20 2024,10:30 AM,Spanish,34,
+Sunday Service,October 27 2024,8:30 AM,English,158,
+Sunday Service,October 27 2024,10:30 AM,English,187,
+Sunday Service,October 27 2024,10:30 AM,Spanish,26,
+Sunday Service,November 03 2024,8:30 AM,English,180,
+Sunday Service,November 03 2024,10:30 AM,English,200,
+Sunday Service,November 03 2024,10:30 AM,Spanish,32,
+Sunday Service,November 10 2024,8:30 AM,English,169,
+Sunday Service,November 10 2024,10:30 AM,English,159,
+Sunday Service,November 10 2024,10:30 AM,Spanish,38,
+Sunday Service,November 17 2024,8:30 AM,English,131,
+Sunday Service,November 17 2024,10:30 AM,English,157,
+Sunday Service,November 17 2024,10:30 AM,Spanish,46,
+Sunday Service,November 24 2024,8:30 AM,English,130,
+Sunday Service,November 24 2024,10:30 AM,English,218,
+Sunday Service,November 24 2024,10:30 AM,Spanish,0,
+Sunday Service,December 01 2024,8:30 AM,English,134,
+Sunday Service,December 01 2024,10:30 AM,English,135,
+Sunday Service,December 01 2024,10:30 AM,Spanish,38,
+Sunday Service,December 08 2024,8:30 AM,English,169,
+Sunday Service,December 08 2024,10:30 AM,English,186,
+Sunday Service,December 08 2024,10:30 AM,Spanish,39,
+Sunday Service,December 15 2024,8:30 AM,English,140,
+Sunday Service,December 15 2024,10:30 AM,English,115,
+Sunday Service,December 15 2024,10:30 AM,Spanish,23,
+Sunday Service,December 22 2024,8:30 AM,English,160,
+Sunday Service,December 22 2024,10:30 AM,English,150,
+Sunday Service,December 22 2024,10:30 AM,Spanish,35,
+Sunday Service,December 29 2024,8:30 AM,English,140,
+Sunday Service,December 29 2024,10:30 AM,English,124,
+Sunday Service,December 29 2024,10:30 AM,Spanish,33,
+Sunday Service,January 05 2025,8:30 AM,English,140,
+Sunday Service,January 05 2025,10:30 AM,English,165,
+Sunday Service,January 05 2025,10:30 AM,Spanish,43,
+Sunday Service,January 12 2025,8:30 AM,English,0,
+Sunday Service,January 12 2025,10:30 AM,English,114,
+Sunday Service,January 12 2025,10:30 AM,Spanish,30,
+Sunday Service,January 19 2025,8:30 AM,English,101,
+Sunday Service,January 19 2025,10:30 AM,English,113,
+Sunday Service,January 19 2025,10:30 AM,Spanish,34,
+Sunday Service,January 26 2025,8:30 AM,English,135,
+Sunday Service,January 26 2025,10:30 AM,English,229,
+Sunday Service,January 26 2025,10:30 AM,Spanish,41,
+Sunday Service,February 02 2025,8:30 AM,English,162,
+Sunday Service,February 02 2025,10:30 AM,English,156,
+Sunday Service,February 02 2025,10:30 AM,Spanish,45,
+Sunday Service,February 09 2025,8:30 AM,English,151,
+Sunday Service,February 09 2025,10:30 AM,English,151,
+Sunday Service,February 09 2025,10:30 AM,Spanish,56,
+Sunday Service,February 16 2025,8:30 AM,English,110,
+Sunday Service,February 16 2025,10:30 AM,English,143,
+Sunday Service,February 16 2025,10:30 AM,Spanish,33,
+Sunday Service,February 23 2025,8:30 AM,English,141,
+Sunday Service,February 23 2025,10:30 AM,English,157,
+Sunday Service,February 23 2025,10:30 AM,Spanish,41,
+Sunday Service,March 02 2025,8:30 AM,English,160,
+Sunday Service,March 02 2025,10:30 AM,English,182,
+Sunday Service,March 02 2025,10:30 AM,Spanish,36,
+Sunday Service,March 09 2025,8:30 AM,English,122,
+Sunday Service,March 09 2025,10:30 AM,English,174,
+Sunday Service,March 09 2025,10:30 AM,Spanish,36,
+Sunday Service,March 16 2025,8:30 AM,English,179,
+Sunday Service,March 16 2025,10:30 AM,English,167,
+Sunday Service,March 16 2025,10:30 AM,Spanish,38,
+Sunday Service,March 23 2025,8:30 AM,English,136,
+Sunday Service,March 23 2025,10:30 AM,English,210,
+Sunday Service,March 23 2025,10:30 AM,Spanish,36,
+Sunday Service,March 30 2025,8:30 AM,English,113,
+Sunday Service,March 30 2025,10:30 AM,English,168,
+Sunday Service,March 30 2025,10:30 AM,Spanish,32,
+Sunday Service,April 6 2025,8:30 AM,English,150,
+Sunday Service,April 6 2025,10:30 AM,English,206,
+Sunday Service,April 6 2025,11:00 AM,Spanish,35,
+Sunday Service,April 13 2025,8:30 AM,English,213,
+Sunday Service,April 13 2025,10:30 AM,English,172,
+Sunday Service,April 13 2025,11:00 AM,Spanish,37,
+Sunday Service,April 20 2025,8:30 AM,English,,Bilingual Service
+Sunday Service,April 20 2025,10:30 AM,English,,Bilingual Service
+Sunday Service,April 20 2025,11:00 AM,Spanish,,Bilingual Service
+Sunday Service,April 27 2025,8:30 AM,English,135,
+Sunday Service,April 27 2025,10:30 AM,English,179,
+Sunday Service,April 27 2025,11:00 AM,Spanish,39,
+Sunday Service,May 4 2025,8:30 AM,English,160,
+Sunday Service,May 4 2025,10:30 AM,English,171,
+Sunday Service,May 4 2025,11:00 AM,Spanish,22,
+Sunday Service,May 11 2025,8:30 AM,English,160,
+Sunday Service,May 11 2025,10:30 AM,English,189,
+Sunday Service,May 11 2025,11:00 AM,Spanish,42,
+Sunday Service,May 18 2025,8:30 AM,English,158,
+Sunday Service,May 18 2025,10:30 AM,English,141,
+Sunday Service,May 18 2025,11:00 AM,Spanish,34,
+Sunday Service,May 25 2025,8:30 AM,English,124,
+Sunday Service,May 25 2025,10:30 AM,English,148,
+Sunday Service,May 25 2025,11:00 AM,Spanish,31,
+Sunday Service,June 1 2025,8:30 AM,English,140,
+Sunday Service,June 1 2025,10:30 AM,English,158,
+Sunday Service,June 1 2025,11:00 AM,Spanish,39,
+Sunday Service,June 8 2025,8:30 AM,English,111,
+Sunday Service,June 8 2025,10:30 AM,English,144,
+Sunday Service,June 8 2025,11:00 AM,Spanish,28,
+Sunday Service,June 15 2025,8:30 AM,English,145,
+Sunday Service,June 15 2025,10:30 AM,English,186,
+Sunday Service,June 15 2025,11:00 AM,Spanish,32,
+Sunday Service,June 22 2025,8:30 AM,English,122,
+Sunday Service,June 22 2025,10:30 AM,English,127,
+Sunday Service,June 22 2025,11:00 AM,Spanish,40,
+Sunday Service,June 29 2025,8:30 AM,English,,Church at the Lake
+Sunday Service,June 29 2025,10:30 AM,English,,Church at the Lake
+Sunday Service,June 29 2025,11:00 AM,Spanish,,Church at the Lake
+Sunday Service,July 6 2025,8:30 AM,English,115,
+Sunday Service,July 6 2025,10:30 AM,English,138,
+Sunday Service,July 6 2025,11:00 AM,Spanish,41,
+Sunday Service,July 13 2025,8:30 AM,English,138,
+Sunday Service,July 13 2025,10:30 AM,English,153,
+Sunday Service,July 13 2025,11:00 AM,Spanish,39,
+Sunday Service,July 20 2025,8:30 AM,English,115,
+Sunday Service,July 20 2025,10:30 AM,English,168,
+Sunday Service,July 20 2025,11:00 AM,Spanish,34,
+Sunday Service,July 27 2025,8:30 AM,English,117,
+Sunday Service,July 27 2025,10:30 AM,English,140,
+Sunday Service,July 27 2025,11:00 AM,Spanish,41,
+Sunday Service,August 3 2025,8:30 AM,English,116,
+Sunday Service,August 3 2025,10:30 AM,English,151,
+Sunday Service,August 3 2025,11:00 AM,Spanish,40,
+Sunday Service,August 10 2025,8:30 AM,English,125,
+Sunday Service,August 10 2025,10:30 AM,English,128,
+Sunday Service,August 10 2025,11:00 AM,Spanish,37,
+Sunday Service,August 17 2025,8:30 AM,English,112,
+Sunday Service,August 17 2025,10:30 AM,English,120,
+Sunday Service,August 17 2025,11:00 AM,Spanish,32,
+Sunday Service,August 24 2025,8:30 AM,English,145,
+Sunday Service,August 24 2025,10:30 AM,English,148,
+Sunday Service,August 24 2025,11:00 AM,Spanish,35,
+Sunday Service,August 31 2025,8:30 AM,English,115,
+Sunday Service,August 31 2025,10:30 AM,English,135,
+Sunday Service,August 31 2025,11:00 AM,Spanish,,Camp Shamineau
+Sunday Service,September 7 2025,8:30 AM,English,175,
+Sunday Service,September 7 2025,10:30 AM,English,176,
+Sunday Service,September 7 2025,11:00 AM,Spanish,42,
+Sunday Service,September 14 2025,8:30 AM,English,163,
+Sunday Service,September 14 2025,10:30 AM,English,167,
+Sunday Service,September 14 2025,11:00 AM,Spanish,32,
+Sunday Service,September 21 2025,8:30 AM,English,244,
+Sunday Service,September 21 2025,10:30 AM,English,165,
+Sunday Service,September 21 2025,11:00 AM,Spanish,27,
+Sunday Service,September 28 2025,8:30 AM,English,152,
+Sunday Service,September 28 2025,10:30 AM,English,166,
+Sunday Service,September 28 2025,11:00 AM,Spanish,32,
+Sunday Service,October 5 2025,8:30 AM,English,158,
+Sunday Service,October 5 2025,10:30 AM,English,186,
+Sunday Service,October 5 2025,11:00 AM,Spanish,28,
+Sunday Service,October 12 2025,8:30 AM,English,168,
+Sunday Service,October 12 2025,10:30 AM,English,146,
+Sunday Service,October 12 2025,11:00 AM,Spanish,38,
+Sunday Service,October 19 2025,8:30 AM,English,158,
+Sunday Service,October 19 2025,10:30 AM,English,178,
+Sunday Service,October 19 2025,11:00 AM,Spanish,33,
+Sunday Service,October 26 2025,8:30 AM,English,180,
+Sunday Service,October 26 2025,10:30 AM,English,202,
+Sunday Service,October 26 2025,11:00 AM,Spanish,28,
+Sunday Service,November 2 2025,8:30 AM,English,208,
+Sunday Service,November 2 2025,10:30 AM,English,181,
+Sunday Service,November 2 2025,11:00 AM,Spanish,38,
+Sunday Service,November 9 2025,8:30 AM,English,130,
+Sunday Service,November 9 2025,10:30 AM,English,151,
+Sunday Service,November 9 2025,11:00 AM,Spanish,36,
+Sunday Service,November 16 2025,8:30 AM,English,171,
+Sunday Service,November 16 2025,10:30 AM,English,182,
+Sunday Service,November 16 2025,11:00 AM,Spanish,26,
+Sunday Service,November 23 2025,8:30 AM,English,184,
+Sunday Service,November 23 2025,10:30 AM,English,176,
+Sunday Service,November 23 2025,11:00 AM,Spanish,38,
+Sunday Service,November 30 2025,8:30 AM,English,140,
+Sunday Service,November 30 2025,10:30 AM,English,153,
+Sunday Service,November 30 2025,11:00 AM,Spanish,35,
+Sunday Service,December 7 2025,8:30 AM,English,165,
+Sunday Service,December 7 2025,10:30 AM,English,161,
+Sunday Service,December 7 2025,11:00 AM,Spanish,33,
+Sunday Service,December 14 2025,8:30 AM,English,182,
+Sunday Service,December 14 2025,10:30 AM,English,137,
+Sunday Service,December 14 2025,11:00 AM,Spanish,30,
+Sunday Service,December 21 2025,8:30 AM,English,134,
+Sunday Service,December 21 2025,10:30 AM,English,178,
+Sunday Service,December 21 2025,11:00 AM,Spanish,29,
+Sunday Service,December 28 2025,8:30 AM,English,,All Services Cancelled
+Sunday Service,December 28 2025,10:30 AM,English,,All Services Cancelled
+Sunday Service,December 28 2025,11:00 AM,Spanish,,All Services Cancelled
+Sunday Service,January 4 2026,8:30 AM,English,157,
+Sunday Service,January 4 2026,10:30 AM,English,148,
+Sunday Service,January 4 2026,11:00 AM,Spanish,35,
+Sunday Service,January 11 2026,8:30 AM,English,157,
+Sunday Service,January 11 2026,10:30 AM,English,168,
+Sunday Service,January 11 2026,11:00 AM,Spanish,34,
+Sunday Service,January 18 2026,8:30 AM,English,127,
+Sunday Service,January 18 2026,10:30 AM,English,122,
+Sunday Service,January 18 2026,11:00 AM,Spanish,32,
+Sunday Service,January 25 2026,8:30 AM,English,161,
+Sunday Service,January 25 2026,10:30 AM,English,196,
+Sunday Service,January 25 2026,11:00 AM,Spanish,32,
+Sunday Service,February 1 2026,8:30 AM,English,193,
+Sunday Service,February 1 2026,10:30 AM,English,158,
+Sunday Service,February 1 2026,11:00 AM,Spanish,34,
+Sunday Service,February 8 2026,8:30 AM,English,161,
+Sunday Service,February 8 2026,10:30 AM,English,173,
+Sunday Service,February 8 2026,11:00 AM,Spanish,41,
+Sunday Service,February 15 2026,8:30 AM,English,205,
+Sunday Service,February 15 2026,10:30 AM,English,169,
+Sunday Service,February 15 2026,11:00 AM,Spanish,30,
+Sunday Service,February 22 2026,8:30 AM,English,142,
+Sunday Service,February 22 2026,10:30 AM,English,190,
+Sunday Service,February 22 2026,11:00 AM,Spanish,37,
+Sunday Service,March 1 2026,8:30 AM,English,144,
+Sunday Service,March 1 2026,10:30 AM,English,157,
+Sunday Service,March 1 2026,11:00 AM,Spanish,32,
+Sunday Service,March 8 2026,8:30 AM,English,125,
+Sunday Service,March 8 2026,10:30 AM,English,186,
+Sunday Service,March 8 2026,11:00 AM,Spanish,41,
+Sunday Service,March 15 2026,8:30 AM,English,,Weather Cancellation
+Sunday Service,March 15 2026,10:30 AM,English,,Weather Cancellation
+Sunday Service,March 15 2026,11:00 AM,Spanish,,Weather Cancellation
+Sunday Service,March 22 2026,8:30 AM,English,167,
+Sunday Service,March 22 2026,10:30 AM,English,231,
+Sunday Service,March 29 2026,8:30 AM,English,194,
+Sunday Service,March 29 2026,10:30 AM,English,233,
+Sunday Service,April 5 2026,10:30 AM,Bilingual,550,Easter Bilingual
+`;
+
+// Nursery data overrides (from Data.csv — authoritative split of attendance vs nursery).
+// For these records, `count` is attendance WITHOUT nursery; `nursery` is the separate nursery count.
+// count + nursery = total attendance (matches the pre-split value from the first CSV, except where noted).
+const NURSERY_OVERRIDES = [
+  { date: '2025-12-21', time: '8:30 AM',  type: 'English', count: 125, nursery: 9,  notes: 'Nursery tracking begins' },
+  { date: '2025-12-21', time: '10:30 AM', type: 'English', count: 168, nursery: 10, notes: 'Nursery tracking begins' },
+  { date: '2025-12-21', time: '11:00 AM', type: 'Spanish', count: 29,  nursery: 0 },
+  { date: '2026-01-04', time: '8:30 AM',  type: 'English', count: 157, nursery: 0 },
+  { date: '2026-01-04', time: '10:30 AM', type: 'English', count: 140, nursery: 8 },
+  { date: '2026-01-04', time: '11:00 AM', type: 'Spanish', count: 35,  nursery: 0 },
+  { date: '2026-01-11', time: '8:30 AM',  type: 'English', count: 148, nursery: 9 },
+  { date: '2026-01-11', time: '10:30 AM', type: 'English', count: 160, nursery: 8 },
+  { date: '2026-01-11', time: '11:00 AM', type: 'Spanish', count: 34,  nursery: 0 },
+  { date: '2026-01-18', time: '8:30 AM',  type: 'English', count: 119, nursery: 8 },
+  { date: '2026-01-18', time: '10:30 AM', type: 'English', count: 115, nursery: 7 },
+  { date: '2026-01-18', time: '11:00 AM', type: 'Spanish', count: 32,  nursery: 0 },
+  { date: '2026-01-25', time: '8:30 AM',  type: 'English', count: 149, nursery: 12 },
+  { date: '2026-01-25', time: '10:30 AM', type: 'English', count: 185, nursery: 11 },
+  { date: '2026-01-25', time: '11:00 AM', type: 'Spanish', count: 32,  nursery: 0 },
+  { date: '2026-02-01', time: '8:30 AM',  type: 'English', count: 179, nursery: 14 },
+  { date: '2026-02-01', time: '10:30 AM', type: 'English', count: 146, nursery: 12 },
+  { date: '2026-02-01', time: '11:00 AM', type: 'Spanish', count: 34,  nursery: 0 },
+  { date: '2026-02-08', time: '8:30 AM',  type: 'English', count: 151, nursery: 10 },
+  { date: '2026-02-08', time: '10:30 AM', type: 'English', count: 163, nursery: 16, notes: '10 kids, 6 helpers' },
+  { date: '2026-02-08', time: '11:00 AM', type: 'Spanish', count: 41,  nursery: 0 },
+  { date: '2026-02-15', time: '8:30 AM',  type: 'English', count: 195, nursery: 10 },
+  { date: '2026-02-15', time: '10:30 AM', type: 'English', count: 158, nursery: 11 },
+  { date: '2026-02-15', time: '11:00 AM', type: 'Spanish', count: 30,  nursery: 0 },
+  { date: '2026-02-22', time: '8:30 AM',  type: 'English', count: 130, nursery: 12 },
+  { date: '2026-02-22', time: '10:30 AM', type: 'English', count: 175, nursery: 15 },
+  { date: '2026-02-22', time: '11:00 AM', type: 'Spanish', count: 37,  nursery: 0 },
+  { date: '2026-03-01', time: '8:30 AM',  type: 'English', count: 131, nursery: 13 },
+  { date: '2026-03-01', time: '10:30 AM', type: 'English', count: 150, nursery: 7 },
+  { date: '2026-03-01', time: '11:00 AM', type: 'Spanish', count: 32,  nursery: 0 },
+  { date: '2026-03-08', time: '8:30 AM',  type: 'English', count: 119, nursery: 6 },
+  { date: '2026-03-08', time: '10:30 AM', type: 'English', count: 172, nursery: 14 },
+  { date: '2026-03-08', time: '11:00 AM', type: 'Spanish', count: 41,  nursery: 0 },
+];
+
+// -------------- Constants --------------
+const CAP_COMFORT = 248;
+const CAP_EXPANDED = 284;
+const PCT_YELLOW = 0.70;
+const PCT_RED = 0.80;
+const PCT_WIDGET_THRESHOLD = 0.75;
+const STORAGE_KEY = 'mefc_user_entries_v1';
+const DELETED_KEY = 'mefc_deleted_entries_v1';
+const SPECIAL_KEY = 'mefc_special_entries_v1';
+const SYNC_CACHE_KEY = 'mefc_sync_cache_v1';
+const SYNC_META_KEY  = 'mefc_sync_meta_v1';
+
+// Google Apps Script Web App URL — data source of truth when sheet has records.
+const API_URL = 'https://script.google.com/macros/s/AKfycbxUFmlLsr0Ds7aAzg5WdNnNFcAfY5x35rfD31gse6wND-SlBLXqrnWs9kBrpVync52Z/exec';
+// OAuth Client ID from Google Cloud — used by Google Identity Services.
+const GOOGLE_CLIENT_ID = '245459877055-e39532ngb103tcjm0m2pgdgbn9ge0ua0.apps.googleusercontent.com';
+// Client-side view of the editor allowlist (for hiding edit UI pre-server check).
+// The server always re-validates via the ID token, so this is UX-only.
+const EDITOR_EMAILS = new Set([
+  'davidbenjamin@mefc.net',
+  'kolby@mefc.net',
+  'hector@mefc.net',
+]);
+
+// -------------- Sync API --------------
+// Thin wrapper around the Apps Script Web App. Anonymous GET to read,
+// authenticated POST (Google ID token) to write. Apps Script doesn't like
+// application/json request bodies (they trigger a CORS preflight it can't
+// handle), so we send text/plain with a JSON-stringified body.
+const api = {
+  idToken: null,        // Google ID token JWT, set after sign-in
+  user: null,           // { email, name, picture } after sign-in
+
+  async get() {
+    const res = await fetch(API_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  },
+
+  async post(body) {
+    if (!this.idToken) throw new Error('Not signed in');
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...body, idToken: this.idToken }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  },
+
+  setCredential(idToken, user) { this.idToken = idToken; this.user = user; },
+  clear() { this.idToken = null; this.user = null; },
+};
+
+// -------------- App --------------
+const app = {
+  records: [],
+  filtered: [],
+  charts: {},
+
+  // Auth + sync state.
+  _isEditor: false,
+  _sourceMode: 'loading',   // 'sheet' | 'local' | 'offline' | 'loading'
+  _lastSynced: null,
+  _sheetHasRecords: false,  // true once the sheet has at least one row
+  _user: null,              // { email, name, picture } when signed in
+
+  async init() {
+    this._specialSet = this.loadSpecialKeys();
+    this.updateSyncStatus('loading', 'Loading…');
+
+    // Try pulling from the sheet first. If the sheet is empty, fall back to
+    // local data (seed + user entries) so editors can one-click-migrate.
+    // If the fetch fails (offline, Apps Script hiccup), fall back to whatever
+    // we cached locally last time.
+    try {
+      const data = await api.get();
+      this._lastSynced = new Date(data.updated_at || Date.now());
+      localStorage.setItem(SYNC_CACHE_KEY, JSON.stringify(data.records || []));
+      localStorage.setItem(SYNC_META_KEY, JSON.stringify({ updated_at: data.updated_at }));
+
+      if (Array.isArray(data.records) && data.records.length > 0) {
+        this._sheetHasRecords = true;
+        this._sourceMode = 'sheet';
+        this.records = this.recordsFromSheet(data.records);
+      } else {
+        // Sheet is wired up but empty — show the local seed so the page
+        // still renders, and (if editor) offer migration.
+        this._sheetHasRecords = false;
+        this._sourceMode = 'local';
+        this.records = this.loadAll();
+      }
+    } catch (err) {
+      console.warn('Sheet fetch failed; using cache/local', err);
+      const cached = localStorage.getItem(SYNC_CACHE_KEY);
+      if (cached) {
+        try {
+          const arr = JSON.parse(cached);
+          if (Array.isArray(arr) && arr.length > 0) {
+            this._sheetHasRecords = true;
+            this._sourceMode = 'offline';
+            this.records = this.recordsFromSheet(arr);
+          } else {
+            this._sourceMode = 'local';
+            this.records = this.loadAll();
+          }
+        } catch {
+          this._sourceMode = 'local';
+          this.records = this.loadAll();
+        }
+      } else {
+        this._sourceMode = 'local';
+        this.records = this.loadAll();
+      }
+    }
+
+    this.updateSyncStatus(this._sourceMode);
+    this.initGoogleSignIn();
+    this.populateYearFilter();
+    this.setDefaultAddDate();
+    this.applyFilters();
+    this.updateUserCount();
+    this.updateDeletedCount();
+    this.updateSpecialCount();
+    this.refreshMigrateBanner();
+  },
+
+  // ---------- Sync + auth ----------
+  // Turn the flat sheet rows into the same enriched shape the rest of the
+  // app expects. Sheet rows carry is_special / is_deleted inline, so we
+  // mirror those onto the local special-key set and filter deleted rows out.
+  recordsFromSheet(rows) {
+    const specials = new Set();
+    const out = [];
+    for (const r of rows) {
+      if (!r.date || !r.time || !r.type) continue;
+      if (toBoolish(r.is_deleted)) continue; // soft-deleted on the server
+      const dateKey = String(r.date).slice(0, 10);
+      const rec = enrichRecord({
+        date: dateKey,
+        time: r.time,
+        type: r.type,
+        count: r.count === '' || r.count == null ? null : Number(r.count),
+        nursery: r.nursery === '' || r.nursery == null ? 0 : Number(r.nursery),
+        notes: r.notes || '',
+      });
+      if (toBoolish(r.is_special)) {
+        specials.add(`${dateKey}|${r.time}|${r.type}`);
+      }
+      out.push(rec);
+    }
+    // Mirror the server's specials onto the local set so the UI star
+    // rendering + aggregation filtering keeps working unchanged.
+    this._specialSet = specials;
+    try { localStorage.setItem(SPECIAL_KEY, JSON.stringify(Array.from(specials))); } catch {}
+    return out.sort((a, b) => a.date - b.date);
+  },
+
+  // Sync status pill. Drives the colored dot + tooltip in the header.
+  updateSyncStatus(mode, textOverride) {
+    const el = document.getElementById('sync-status');
+    const txt = document.getElementById('sync-status-text');
+    if (!el || !txt) return;
+    el.classList.remove('offline', 'local');
+    let label, tip;
+    switch (mode) {
+      case 'loading':
+        label = textOverride || 'Loading…';
+        tip = 'Fetching latest data from Google Sheet';
+        break;
+      case 'sheet':
+        label = this._lastSynced
+          ? 'Synced ' + relativeTime(this._lastSynced)
+          : 'Synced';
+        tip = 'Showing live data from the shared Google Sheet';
+        break;
+      case 'local':
+        el.classList.add('local');
+        label = 'Local only';
+        tip = 'Showing records from this browser. The shared sheet is empty — editors can migrate local data to it.';
+        break;
+      case 'offline':
+        el.classList.add('offline');
+        label = 'Offline (cached)';
+        tip = 'Could not reach the sheet. Showing the last cached copy.';
+        break;
+      case 'saving':
+        label = textOverride || 'Saving…';
+        tip = 'Pushing changes to the sheet';
+        break;
+      case 'error':
+        el.classList.add('offline');
+        label = textOverride || 'Save failed';
+        tip = 'The last write did not reach the sheet.';
+        break;
+      default:
+        label = textOverride || mode;
+        tip = '';
+    }
+    txt.textContent = label;
+    el.title = tip;
+  },
+
+  // Show the migrate banner only when: (a) editor signed in, AND (b) the
+  // sheet is reachable but empty. Hide it otherwise.
+  //
+  // Separately, show the "Resume migration" row in Admin whenever we're an
+  // editor AND the local browser has records the sheet doesn't fully cover —
+  // handles the partial-migration case where chunks 1-2 landed and chunk 3
+  // failed.
+  refreshMigrateBanner() {
+    const banner = document.getElementById('migrate-banner');
+    if (banner) {
+      const showBanner = this._isEditor && this._sourceMode === 'local' && !this._sheetHasRecords;
+      banner.style.display = showBanner ? 'flex' : 'none';
+    }
+    const resume = document.getElementById('resume-migrate-btn');
+    if (resume) {
+      // Show the resume row when: editor + sheet mode + local has more records
+      // than sheet does (suggests an incomplete previous migration).
+      const localCount = this.loadAll().length;
+      const sheetCount = this.records.length;
+      const showResume = this._isEditor
+        && (this._sourceMode === 'sheet' || this._sourceMode === 'offline')
+        && localCount > sheetCount;
+      resume.style.display = showResume ? '' : 'none';
+      const strong = resume.querySelector('strong');
+      if (strong && showResume) {
+        strong.textContent =
+          `Resume migration: ${localCount - sheetCount} local record${localCount - sheetCount === 1 ? '' : 's'} not yet in the sheet.`;
+      }
+    }
+  },
+
+  initGoogleSignIn() {
+    if (!window.google?.accounts?.id) {
+      // GIS script hasn't loaded yet — retry shortly.
+      setTimeout(() => this.initGoogleSignIn(), 250);
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (resp) => this.onSignIn(resp),
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    // Show the "Sign in to edit" button for viewers.
+    const btn = document.getElementById('signin-btn');
+    if (btn) btn.style.display = '';
+  },
+
+  signIn() {
+    if (!window.google?.accounts?.id) {
+      toast('Google sign-in is still loading — try again in a second', 'error');
+      return;
+    }
+    // Prompt first; if it's blocked / dismissed, fall back to an explicit
+    // popup sign-in so the user always has a way in.
+    google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+        this._oauthPopupSignIn();
+      }
+    });
+  },
+
+  // Fallback sign-in: open Google's OAuth popup directly. We use the
+  // id_token response type so we get a JWT back that our Apps Script can
+  // validate with the tokeninfo endpoint.
+  _oauthPopupSignIn() {
+    if (!window.google?.accounts?.oauth2) {
+      toast('Sign-in unavailable — please reload the page', 'error');
+      return;
+    }
+    // Id-token flow via the legacy Google Sign-In button rendered inline
+    // as a one-off, since GIS's button render needs a DOM target.
+    const holder = document.createElement('div');
+    holder.style.position = 'fixed';
+    holder.style.bottom = '20px';
+    holder.style.right  = '20px';
+    holder.style.zIndex = '9999';
+    document.body.appendChild(holder);
+    google.accounts.id.renderButton(holder, {
+      type: 'standard', theme: 'outline', size: 'large', text: 'signin_with',
+    });
+    toast('Click the Google button (bottom-right) to sign in', 'success');
+  },
+
+  onSignIn(response) {
+    if (!response?.credential) return;
+    let payload;
+    try {
+      payload = JSON.parse(atob(response.credential.split('.')[1]));
+    } catch (err) {
+      toast('Sign-in failed: malformed credential', 'error');
+      return;
+    }
+    const email = (payload.email || '').toLowerCase();
+    this._user = { email, name: payload.name || email, picture: payload.picture || '' };
+    api.setCredential(response.credential, this._user);
+    this._isEditor = EDITOR_EMAILS.has(email);
+    document.body.classList.toggle('is-editor', this._isEditor);
+
+    // Swap header UI: hide sign-in button, show user menu.
+    const signinBtn = document.getElementById('signin-btn');
+    const userMenu  = document.getElementById('user-menu');
+    const emailEl   = document.getElementById('user-email-display');
+    const avatarEl  = document.getElementById('user-avatar');
+    if (signinBtn) signinBtn.style.display = 'none';
+    if (userMenu)  userMenu.style.display  = '';
+    if (emailEl)   emailEl.textContent = email;
+    if (avatarEl && this._user.picture) avatarEl.src = this._user.picture;
+
+    if (!this._isEditor) {
+      toast(`Signed in as ${email} — view only (not on editor list)`, 'success');
+    } else {
+      toast(`Signed in as ${email} — editor access`, 'success');
+    }
+
+    // Re-render so editor-only buttons show up, and re-evaluate migrate banner.
+    this.refreshMigrateBanner();
+    this.applyFilters();
+  },
+
+  signOut() {
+    api.clear();
+    this._user = null;
+    this._isEditor = false;
+    document.body.classList.remove('is-editor');
+    if (window.google?.accounts?.id) {
+      try { google.accounts.id.disableAutoSelect(); } catch {}
+    }
+    const signinBtn = document.getElementById('signin-btn');
+    const userMenu  = document.getElementById('user-menu');
+    if (signinBtn) signinBtn.style.display = '';
+    if (userMenu)  userMenu.style.display  = 'none';
+    this.refreshMigrateBanner();
+    this.applyFilters();
+    toast('Signed out', 'success');
+  },
+
+  // One-shot migration: push the full local record set (seed + NURSERY_OVERRIDES
+  // + user entries, minus deletions, plus special flags) up to the Sheet.
+  // After it finishes we re-fetch from the sheet so subsequent writes round-trip
+  // through the server.
+  //
+  // If some of the local records are already in the sheet (the common case
+  // for "resume migration" after a partial run), we diff them out first so
+  // we only push what's actually missing. The upsert is still idempotent, so
+  // it's safe to re-push everything — but skipping known rows is faster and
+  // avoids rewriting every modified_at timestamp unnecessarily.
+  async migrateLocalDataToSheet() {
+    if (!this._isEditor) { toast('Editors only', 'error'); return; }
+    if (!api.idToken) { toast('Please sign in first', 'error'); return; }
+    const locals = this.loadAll(); // seed+overrides+user entries, minus soft-deletes
+    const specials = this.loadSpecialKeys();
+    const allRecords = locals.map(r => ({
+      date: r.dateKey,
+      time: r.time,
+      type: r.type,
+      count: r.count,
+      nursery: r.nursery || 0,
+      notes: r.notes || '',
+      is_special: specials.has(`${r.dateKey}|${r.time}|${r.type}`),
+      is_deleted: false,
+    }));
+
+    // Diff against what's already in the sheet. Build a key set of the
+    // records currently held in `this.records` (which came from the sheet
+    // if we're in sheet mode).
+    const sheetKeys = new Set(
+      (this._sourceMode === 'sheet' || this._sourceMode === 'offline')
+        ? this.records.map(r => `${r.dateKey}|${r.time}|${r.type}`)
+        : []
+    );
+    const records = allRecords.filter(r => !sheetKeys.has(`${r.date}|${r.time}|${r.type}`));
+
+    if (records.length === 0) {
+      toast('Nothing new to push — the sheet already has everything the local browser has', 'success');
+      return;
+    }
+    const resume = sheetKeys.size > 0;
+    const prompt = resume
+      ? `Push ${records.length} local records that aren't in the sheet yet?\n\n(The sheet already has ${sheetKeys.size}; this finishes what the previous migration started.)`
+      : `Push ${records.length} records from this browser to the shared Google Sheet?\n\nThis is a one-time migration. After this, everyone sees the same data.`;
+    if (!confirm(prompt)) return;
+
+    this.updateSyncStatus('saving', `Migrating ${records.length} records…`);
+    // Chunk modestly so even a slow Apps Script pass finishes within its
+    // 6-minute execution limit. The upsert is idempotent, so if a chunk
+    // fails partway, rerunning the migration safely resumes where it left off.
+    const CHUNK = 100;
+    let inserted = 0, updated = 0;
+    let i = 0;
+    try {
+      for (; i < records.length; i += CHUNK) {
+        const chunk = records.slice(i, i + CHUNK);
+        const res = await api.post({ action: 'batch_upsert', records: chunk });
+        if (res?.results) {
+          inserted += res.results.inserted || 0;
+          updated  += res.results.updated  || 0;
+        }
+        this.updateSyncStatus('saving', `Migrating ${Math.min(i + CHUNK, records.length)} / ${records.length}…`);
+      }
+      toast(`Migrated ${inserted + updated} records (${inserted} new, ${updated} updated)`, 'success');
+      // Re-fetch so we're now in sheet mode.
+      await this.refreshFromSheet();
+    } catch (err) {
+      console.error(err);
+      this.updateSyncStatus('error', 'Migration failed');
+      // Pull the latest from the sheet so the user can see how far we got.
+      try { await this.refreshFromSheet(); } catch {}
+      toast(
+        `Migration stopped at ${i}/${records.length} — ${err.message}. ` +
+        `The upsert is idempotent; click "Migrate to sheet" again to resume.`,
+        'error'
+      );
+    }
+  },
+
+  // Re-fetch from the sheet and re-render. Called after any write in sheet mode.
+  async refreshFromSheet() {
+    try {
+      const data = await api.get();
+      this._lastSynced = new Date(data.updated_at || Date.now());
+      localStorage.setItem(SYNC_CACHE_KEY, JSON.stringify(data.records || []));
+      localStorage.setItem(SYNC_META_KEY, JSON.stringify({ updated_at: data.updated_at }));
+      if (Array.isArray(data.records) && data.records.length > 0) {
+        this._sheetHasRecords = true;
+        this._sourceMode = 'sheet';
+        this.records = this.recordsFromSheet(data.records);
+      } else {
+        this._sheetHasRecords = false;
+        this._sourceMode = 'local';
+        this.records = this.loadAll();
+      }
+      this.updateSyncStatus(this._sourceMode);
+      this.populateYearFilter();
+      this.applyFilters();
+      this.updateSpecialCount();
+      this.refreshMigrateBanner();
+    } catch (err) {
+      console.warn('Refresh failed', err);
+      this.updateSyncStatus('error', 'Refresh failed');
+    }
+  },
+
+  // ---------- Data loading ----------
+  loadAll() {
+    const seed = parseCSV(SEED_CSV);
+    const user = this.loadUserEntries();
+    // De-dupe by date+time+type — user entries win; nursery overrides replace seed
+    const key = r => `${r.dateKey}|${r.time}|${r.type}`;
+    const map = new Map();
+    for (const r of seed) map.set(key(r), r);
+
+    // Apply nursery overrides from Data.csv (authoritative split)
+    for (const o of NURSERY_OVERRIDES) {
+      const k = `${o.date}|${o.time}|${o.type}`;
+      const existing = map.get(k);
+      if (existing) {
+        existing.count = o.count;
+        existing.nursery = o.nursery;
+        existing.hasCount = (o.count !== null && o.count > 0) || o.nursery > 0;
+        if (o.notes) existing.notes = o.notes;
+      } else {
+        map.set(k, enrichRecord({ ...o }));
+      }
+    }
+
+    for (const r of user) map.set(key(r), r);
+
+    const deleted = this.loadDeletedKeys();
+    const all = Array.from(map.values()).filter(r => !deleted.has(key(r)));
+    return all.sort((a, b) => a.date - b.date);
+  },
+
+  loadDeletedKeys() {
+    try {
+      const raw = localStorage.getItem(DELETED_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  },
+
+  saveDeletedKeys(set) {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(set)));
+    this.updateDeletedCount();
+  },
+
+  updateDeletedCount() {
+    const n = this.loadDeletedKeys().size;
+    const el = document.getElementById('deleted-count');
+    if (el) el.textContent = n;
+    const btn = document.getElementById('restore-deleted-btn');
+    if (btn) btn.style.display = n > 0 ? '' : 'none';
+  },
+
+  // Special-service flagging. Marked rows stay visible in the table and
+  // timeseries chart but get excluded from averages, trends, YoY, forecasts,
+  // and anomaly detection unless the Specials filter is set to "Include".
+  loadSpecialKeys() {
+    try {
+      const raw = localStorage.getItem(SPECIAL_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  },
+
+  saveSpecialKeys(set) {
+    localStorage.setItem(SPECIAL_KEY, JSON.stringify(Array.from(set)));
+    this.updateSpecialCount();
+  },
+
+  updateSpecialCount() {
+    const n = this.loadSpecialKeys().size;
+    const el = document.getElementById('special-count');
+    if (el) el.textContent = n;
+  },
+
+  isSpecialRecord(r) {
+    return this._specialSet?.has(`${r.dateKey}|${r.time}|${r.type}`) || false;
+  },
+
+  async toggleSpecial(dateKey, time, type) {
+    if (!this._isEditor && this._sourceMode === 'sheet') {
+      toast('Sign in as an editor to change special flags', 'error');
+      return;
+    }
+    const k = `${dateKey}|${time}|${type}`;
+    const set = this.loadSpecialKeys();
+    const nowSpecial = !set.has(k);
+    if (nowSpecial) set.add(k); else set.delete(k);
+    this.saveSpecialKeys(set);
+    this._specialSet = set;
+    this.applyFilters();
+
+    // In sheet mode, persist the flag to the server by upserting the record
+    // with its current fields + the new is_special value.
+    if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
+      const r = this.records.find(x => x.dateKey === dateKey && x.time === time && x.type === type);
+      if (!r) return;
+      this.updateSyncStatus('saving', nowSpecial ? 'Marking special…' : 'Unmarking special…');
+      try {
+        await api.post({
+          action: 'upsert',
+          record: {
+            date: dateKey, time, type,
+            count: r.count, nursery: r.nursery || 0, notes: r.notes || '',
+            is_special: nowSpecial,
+            is_deleted: false,
+          },
+        });
+        await this.refreshFromSheet();
+      } catch (err) {
+        console.error(err);
+        // Roll back local flag so UI stays in sync with server.
+        if (nowSpecial) set.delete(k); else set.add(k);
+        this.saveSpecialKeys(set);
+        this._specialSet = set;
+        this.applyFilters();
+        this.updateSyncStatus('error', 'Save failed');
+        toast('Could not save special flag: ' + err.message, 'error');
+      }
+    }
+  },
+
+  // Returns the records used for aggregation calcs — drops specials when the
+  // Specials filter is set to "exclude" (the default).
+  get aggregationRecords() {
+    const mode = document.getElementById('filter-specials')?.value || 'exclude';
+    if (mode === 'include') return this.records;
+    return this.records.filter(r => !this.isSpecialRecord(r));
+  },
+
+  loadUserEntries() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return arr.map(r => enrichRecord(r));
+    } catch (e) {
+      console.warn('Failed to load user entries', e);
+      return [];
+    }
+  },
+
+  saveUserEntries(entries) {
+    const serializable = entries.map(r => ({
+      date: r.dateKey,
+      time: r.time,
+      type: r.type,
+      count: r.count,
+      nursery: r.nursery || 0,
+      notes: r.notes || ''
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+    this.updateUserCount();
+  },
+
+  updateUserCount() {
+    const n = this.loadUserEntriesRaw().length;
+    const el = document.getElementById('user-added-count');
+    if (el) el.textContent = n;
+  },
+
+  loadUserEntriesRaw() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  },
+
+  // ---------- Filters ----------
+  populateYearFilter() {
+    const years = Array.from(new Set(this.records.map(r => r.date.getFullYear()))).sort();
+    const sel = document.getElementById('filter-year');
+    sel.innerHTML = '<option value="all">All years</option>' +
+      years.map(y => `<option value="${y}">${y}</option>`).join('');
+  },
+
+  resetFilters() {
+    document.getElementById('filter-year').value = 'all';
+    document.getElementById('filter-from').value = '';
+    document.getElementById('filter-to').value = '';
+    this.applyFilters();
+  },
+
+  applyFilters() {
+    const year = document.getElementById('filter-year').value;
+    const from = document.getElementById('filter-from').value;
+    const to = document.getElementById('filter-to').value;
+    let f = this.records.slice();
+    if (year !== 'all') f = f.filter(r => r.date.getFullYear() === parseInt(year));
+    if (from) { const d = new Date(from + 'T00:00:00'); f = f.filter(r => r.date >= d); }
+    if (to) { const d = new Date(to + 'T23:59:59'); f = f.filter(r => r.date <= d); }
+    this.filtered = f;
+    this.renderAll();
+  },
+
+  // ---------- Rendering ----------
+  renderAll() {
+    this.computeAnomalies();
+    this.renderWidgets();
+    this.renderTrendInsights();
+    this.renderTimeseries();
+    this.renderMonthly();
+    this.renderYoY();
+    this.renderTable();
+  },
+
+  // ---- Trend Insights (tier-1 diagnostics) ----
+  // Returns the last N Sundays' data for a given slot as [{x: weekIndex, y: count, date}]
+  // where x is a zero-origin index running forward in time (oldest = 0).
+  slotSeries(slot, n) {
+    const rows = this.aggregationRecords
+      .filter(r => r.slot === slot && r.hasCount)
+      .sort((a, b) => a.date - b.date);
+    const last = rows.slice(-n);
+    return last.map((r, i) => ({ x: i, y: effectiveCount(r), date: r.date }));
+  },
+
+  // Combined attendance per Sunday, last N Sundays with any data.
+  combinedSeries(n) {
+    const byDate = new Map();
+    for (const r of this.aggregationRecords) {
+      if (!r.hasCount) continue;
+      if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
+      byDate.set(r.dateKey, (byDate.get(r.dateKey) || 0) + effectiveCount(r));
+    }
+    const sorted = Array.from(byDate.entries())
+      .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+      .slice(-n);
+    return sorted.map(([d, v], i) => ({ x: i, y: v, date: new Date(d + 'T00:00:00') }));
+  },
+
+  yoyGrowthPct(slot) {
+    // Compare avg of last 12 Sundays with avg of the 12 Sundays closest to ~52 weeks earlier
+    const series = slot === 'Combined' ? this.combinedSeries(200) : this.slotSeries(slot, 200);
+    if (series.length < 24) return null;
+    const recent = series.slice(-12);
+    const recentStart = recent[0].date;
+    const yearAgoStart = new Date(recentStart); yearAgoStart.setFullYear(yearAgoStart.getFullYear() - 1);
+    const yearAgoEnd   = new Date(yearAgoStart); yearAgoEnd.setDate(yearAgoEnd.getDate() + 12 * 7);
+    const priorWindow = series.filter(p => p.date >= yearAgoStart && p.date <= yearAgoEnd);
+    if (priorWindow.length < 4) return null;
+    const mean = arr => arr.reduce((s, p) => s + p.y, 0) / arr.length;
+    const recentAvg = mean(recent);
+    const priorAvg  = mean(priorWindow);
+    if (priorAvg === 0) return null;
+    return { pct: ((recentAvg - priorAvg) / priorAvg) * 100, recent: Math.round(recentAvg), prior: Math.round(priorAvg) };
+  },
+
+  renderTrendInsights() {
+    const el = document.getElementById('trend-widgets');
+    if (!el) return;
+
+    // Regressions on last 12 Sundays per slot + combined
+    const reg830 = linearRegression(this.slotSeries('8:30', 12));
+    const reg1030 = linearRegression(this.slotSeries('10:30', 12));
+    const regSp = linearRegression(this.slotSeries('Spanish', 12));
+    const regCombined = linearRegression(this.combinedSeries(12));
+
+    const fmtSlope = (r) => {
+      if (!r) return '—';
+      const sign = r.slope >= 0 ? '+' : '−';
+      return `${sign}${Math.abs(r.slope).toFixed(1)}/wk`;
+    };
+
+    // YoY growth for each service
+    const yoy830 = this.yoyGrowthPct('8:30');
+    const yoy1030 = this.yoyGrowthPct('10:30');
+    const yoyCombined = this.yoyGrowthPct('Combined');
+
+    const fmtYoY = (y) => {
+      if (!y) return '—';
+      const sign = y.pct >= 0 ? '+' : '−';
+      return `${sign}${Math.abs(y.pct).toFixed(1)}%`;
+    };
+    const yoySub = (y) => y ? `${y.recent} now vs ${y.prior} yr ago` : 'Need ≥ 1 yr of data';
+
+    // Capacity forecast — when does each service hit 80% of 248 (= 198)?
+    const forecast = (reg, label) => {
+      if (!reg) return { text: '—', sub: 'Not enough data' };
+      const target = CAP_COMFORT * PCT_RED;
+      // current = last regression value (x = n-1)
+      const current = reg.predict(reg.n - 1);
+      if (current >= target) return { text: 'At cap', sub: `${label} already ≥ 80% of 248` };
+      if (reg.slope <= 0.1) return { text: 'Stable / declining', sub: `${label} not trending toward cap` };
+      const weeksOut = (target - current) / reg.slope;
+      if (weeksOut > 52 * 3) return { text: '> 3 yrs out', sub: `${label} trending toward cap slowly` };
+      const eta = new Date();
+      eta.setDate(eta.getDate() + Math.round(weeksOut * 7));
+      const month = eta.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      return { text: `~ ${month}`, sub: `${label} hits 80% of 248 at current trend` };
+    };
+    const fc830 = forecast(reg830, '8:30');
+    const fc1030 = forecast(reg1030, '10:30');
+
+    const yoyHelp = (svc) =>
+      `Compares the average attendance over the most recent 12 Sundays to the same 12-week window one year ago, for ${svc}. A positive number means we're growing vs last year; negative means we're down. "Need ≥ 1 yr of data" means we don't have enough history yet.`;
+    const rateHelp = (svc) =>
+      `The slope of the best-fit line through the last 12 Sundays of ${svc} attendance — i.e., on average, how many more (or fewer) people show up each week recently. R² is a trust score 0–1: close to 1 means the data really does follow that trend; close to 0 means it's too noisy to read much into the slope.`;
+    const forecastHelp = (svc) =>
+      `If the recent ${svc} weekly rate keeps up, when does the trend line cross 80% of 248 (~ 198 people)? "At cap" means we're there already. "Stable / declining" means the trend isn't heading toward capacity. ">3 yrs out" means capacity isn't a near-term concern for ${svc}.`;
+
+    const coverage = this.dataCoverage(52);
+    const coverageLabel = coverage.sundays === 0
+      ? '—'
+      : `${coverage.pctFull}%`;
+    const coverageSub = coverage.sundays === 0
+      ? 'No Sundays in window'
+      : `${coverage.full}/${coverage.sundays} Sundays have all 3 services${coverage.partial ? ` · ${coverage.partial} partial` : ''}${coverage.missing ? ` · ${coverage.missing} missing` : ''}`;
+    const coverageHelp =
+      `Percentage of Sundays in the last 12 months that have attendance logged for all three services (8:30, 10:30, and Spanish). Partial means some but not all services recorded; missing means no data at all. Low coverage means averages and trends could be biased — if Sundays with missing data aren't random, the "typical" number is based on only the Sundays that happened to get logged.`;
+    const coverageAccent =
+      coverage.pctFull >= 85 ? 'c-combined' : (coverage.pctFull >= 60 ? 'c-1030' : 'c-spanish');
+
+    const html = [
+      widget('Combined YoY Growth', fmtYoY(yoyCombined),  yoySub(yoyCombined), 'c-combined', yoyHelp('all services combined')),
+      widget('8:30 YoY Growth',     fmtYoY(yoy830),       yoySub(yoy830),      'c-830',      yoyHelp('the 8:30 service')),
+      widget('10:30 YoY Growth',    fmtYoY(yoy1030),      yoySub(yoy1030),     'c-1030',     yoyHelp('the 10:30 service')),
+      widget('Combined Weekly Rate', fmtSlope(regCombined), regCombined ? `R² = ${regCombined.r2.toFixed(2)}` : '', 'c-combined', rateHelp('all services combined')),
+      widget('8:30 Weekly Rate',     fmtSlope(reg830),     reg830     ? `R² = ${reg830.r2.toFixed(2)}` : '',     'c-830',      rateHelp('the 8:30 service')),
+      widget('10:30 Weekly Rate',    fmtSlope(reg1030),    reg1030    ? `R² = ${reg1030.r2.toFixed(2)}` : '',    'c-1030',     rateHelp('the 10:30 service')),
+      widget('Spanish Weekly Rate',  fmtSlope(regSp),      regSp      ? `R² = ${regSp.r2.toFixed(2)}` : '',      'c-spanish',  rateHelp('the Spanish service')),
+      widget('8:30 Cap Forecast',   fc830.text,           fc830.sub, 'c-830',  forecastHelp('8:30')),
+      widget('10:30 Cap Forecast',  fc1030.text,          fc1030.sub, 'c-1030', forecastHelp('10:30')),
+      widget('Data Coverage (12 mo)', coverageLabel, coverageSub, coverageAccent, coverageHelp),
+    ].join('');
+    el.innerHTML = html;
+  },
+
+  // Returns coverage stats across the last N weeks of Sundays.
+  // "full" = all 3 services logged; "partial" = some but not all; "missing" = none.
+  dataCoverage(weeks) {
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - weeks * 7);
+
+    // Build the set of Sundays in the window
+    const sundaySet = new Set();
+    const d = new Date(cutoff);
+    d.setDate(d.getDate() + (7 - d.getDay()) % 7);
+    while (d <= now) {
+      sundaySet.add(toISO(d));
+      d.setDate(d.getDate() + 7);
+    }
+
+    // Tally service coverage per Sunday from the full record set (not
+    // aggregationRecords — completeness is about raw data, not stats math)
+    const bySunday = new Map();
+    for (const dk of sundaySet) bySunday.set(dk, { '8:30': false, '10:30': false, Spanish: false });
+    for (const r of this.records) {
+      if (!sundaySet.has(r.dateKey)) continue;
+      if (!r.hasCount) continue;
+      const bucket = bySunday.get(r.dateKey);
+      if (r.slot === '8:30') bucket['8:30'] = true;
+      else if (r.slot === '10:30' || r.slot === 'Bilingual') bucket['10:30'] = true;
+      else if (r.slot === 'Spanish') bucket.Spanish = true;
+    }
+
+    let full = 0, partial = 0, missing = 0;
+    for (const v of bySunday.values()) {
+      const n = (v['8:30'] ? 1 : 0) + (v['10:30'] ? 1 : 0) + (v.Spanish ? 1 : 0);
+      if (n === 3) full++;
+      else if (n === 0) missing++;
+      else partial++;
+    }
+    const sundays = sundaySet.size;
+    return {
+      sundays, full, partial, missing,
+      pctFull: sundays === 0 ? 0 : Math.round((full / sundays) * 100),
+    };
+  },
+
+  // Flag records whose effective count is > 2 stdev from the 12-week rolling
+  // mean for their slot. Populates this.anomalies (Map<key, {sigma, mean}>).
+  computeAnomalies() {
+    this.anomalies = new Map();
+    for (const slot of ['8:30', '10:30', 'Spanish', 'Bilingual']) {
+      // Use aggregationRecords so known-special services don't get flagged as
+      // "unusually high" every Easter/Christmas — and so their inflated values
+      // don't pull the rolling mean up and mask nearby real anomalies.
+      const rows = this.aggregationRecords
+        .filter(r => r.slot === slot && r.hasCount && effectiveCount(r) > 0)
+        .sort((a, b) => a.date - b.date);
+      for (let i = 0; i < rows.length; i++) {
+        // Use preceding up-to-12 records as the reference window (excluding self)
+        const windowStart = Math.max(0, i - 12);
+        const window = rows.slice(windowStart, i);
+        if (window.length < 6) continue; // need enough history
+        const vals = window.map(effectiveCount);
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+        const sigma = Math.sqrt(variance);
+        if (sigma < 5) continue; // uniform window → don't flag noise
+        const v = effectiveCount(rows[i]);
+        const z = (v - mean) / sigma;
+        if (Math.abs(z) >= 2) {
+          const key = `${rows[i].dateKey}|${rows[i].time}|${rows[i].type}`;
+          this.anomalies.set(key, { z, mean: Math.round(mean), sigma: Math.round(sigma), value: v });
+        }
+      }
+    }
+  },
+
+  renderWidgets() {
+    // Use aggregationRecords for rolling/12-month widgets so specials are
+    // excluded from the widget stats unless the Specials filter is "Include".
+    const all = this.aggregationRecords.filter(r => r.hasCount);
+    const now = new Date();
+    const yearAgo = new Date(now);
+    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+
+    const within12mo = all.filter(r => r.date >= yearAgo && r.date <= now);
+
+    // Total services tracked (valid, non-zero counts, using filtered set).
+    // This one stays on `filtered` — it's a "how many rows are in your filter
+    // view" counter, not an average, so including specials is fine.
+    const totalTracked = this.filtered.filter(r => r.hasCount).length;
+
+    // 8:30 & 10:30 exceeding 75% of 248 over past 12 mo
+    const threshold = CAP_COMFORT * PCT_WIDGET_THRESHOLD;
+    const cnt830 = within12mo.filter(r => r.slot === '8:30' && effectiveCount(r) > threshold).length;
+    const cnt1030 = within12mo.filter(r => r.slot === '10:30' && effectiveCount(r) > threshold).length;
+
+    // 12-week rolling averages (last 12 Sundays with data, per service)
+    const avg830 = this.rollingAverage('8:30', 12);
+    const avg1030 = this.rollingAverage('10:30', 12);
+    const avgSpanish = this.rollingAverage('Spanish', 12);
+    const avgCombined = this.combinedRollingAverage(12);
+
+    const html = [
+      widget('Services Tracked', totalTracked, 'In current filter range', '',
+        'The total number of individual service records in your filter range. One Sunday with all three services held counts as 3. Use it to sanity-check that no data is missing for a filtered window.'),
+      widget('8:30 Services ≥75% (12 mo)', cnt830, `Attendance > ${Math.round(threshold)}`, 'c-830',
+        `How many 8:30 Sundays in the last 12 months had attendance above 75% of 248 (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 8:30 services.`),
+      widget('10:30 Services ≥75% (12 mo)', cnt1030, `Attendance > ${Math.round(threshold)}`, 'c-1030',
+        `How many 10:30 Sundays in the last 12 months had attendance above 75% of 248 (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 10:30 services.`),
+      widget('8:30 Avg (Last 12 wks)', avg830 || '—', avg830 ? pctLabel(avg830) : '', 'c-830',
+        'Simple average attendance across the most recent 12 Sundays that had 8:30 data. The sub-text shows that average as a percent of the 248-seat comfortable capacity.'),
+      widget('10:30 Avg (Last 12 wks)', avg1030 || '—', avg1030 ? pctLabel(avg1030) : '', 'c-1030',
+        'Simple average attendance across the most recent 12 Sundays that had 10:30 data. The sub-text shows that average as a percent of the 248-seat comfortable capacity.'),
+      widget('Spanish Avg (Last 12 wks)', avgSpanish || '—', 'Per service', 'c-spanish',
+        'Simple average attendance across the most recent 12 Sundays that had Spanish service data.'),
+      widget('Combined Avg (Last 12 wks)', avgCombined || '—', 'Total per Sunday', 'c-combined',
+        'Average of (8:30 + 10:30 + Spanish) per Sunday, over the most recent 12 Sundays with any data. This is the "how many people came to church that day" number.'),
+    ].join('');
+    document.getElementById('widgets').innerHTML = html;
+  },
+
+  rollingAverage(slot, n) {
+    const entries = this.aggregationRecords
+      .filter(r => r.slot === slot && r.hasCount)
+      .sort((a, b) => b.date - a.date)
+      .slice(0, n);
+    if (entries.length === 0) return 0;
+    const sum = entries.reduce((s, r) => s + effectiveCount(r), 0);
+    return Math.round(sum / entries.length);
+  },
+
+  combinedRollingAverage(n) {
+    // Group by Sunday date, sum counts across services, then average last n Sundays with any data
+    const byDate = new Map();
+    for (const r of this.aggregationRecords) {
+      if (!r.hasCount) continue;
+      if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
+      const key = r.dateKey;
+      byDate.set(key, (byDate.get(key) || 0) + effectiveCount(r));
+    }
+    const sorted = Array.from(byDate.entries())
+      .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+      .slice(0, n);
+    if (sorted.length === 0) return 0;
+    const sum = sorted.reduce((s, [, v]) => s + v, 0);
+    return Math.round(sum / sorted.length);
+  },
+
+  // ---------- Charts ----------
+  renderTimeseries() {
+    // byDate tracks both the count and whether that slot's record is special,
+    // so we can render special points as stars (matching the ★ badge in the
+    // table). Bilingual rows occupy the 10:30 slot visually.
+    const byDate = new Map();
+    for (const r of this.filtered) {
+      if (!r.hasCount) continue;
+      if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
+      if (!byDate.has(r.dateKey)) {
+        byDate.set(r.dateKey, {
+          '8:30': null, '10:30': null, 'Spanish': null,
+          sp830: false, sp1030: false, spSpanish: false,
+        });
+      }
+      const entry = byDate.get(r.dateKey);
+      entry[r.slot] = effectiveCount(r);
+      const isSp = this.isSpecialRecord(r);
+      if (r.slot === '8:30') entry.sp830 = isSp;
+      else if (r.slot === '10:30' || r.slot === 'Bilingual') entry.sp1030 = isSp;
+      else if (r.slot === 'Spanish') entry.spSpanish = isSp;
+    }
+    const dates = Array.from(byDate.keys()).sort();
+    const labels = dates.map(d => formatShortDate(new Date(d + 'T00:00:00')));
+    const s830 = dates.map(d => byDate.get(d)['8:30']);
+    const s1030 = dates.map(d => byDate.get(d)['10:30']);
+    const sSp = dates.map(d => byDate.get(d)['Spanish']);
+    const sTotal = dates.map(d => {
+      const v = byDate.get(d);
+      return (v['8:30'] || 0) + (v['10:30'] || 0) + (v['Spanish'] || 0);
+    });
+
+    // Per-point style arrays — 'star' for specials, 'circle' otherwise.
+    // Star points need a larger radius to be legible.
+    const styleFor = (flags) => flags.map(f => f ? 'star' : 'circle');
+    const radiusFor = (flags, base) => flags.map(f => f ? 6 : base);
+    const sp830Flags = dates.map(d => byDate.get(d).sp830);
+    const sp1030Flags = dates.map(d => byDate.get(d).sp1030);
+    const spSpFlags = dates.map(d => byDate.get(d).spSpanish);
+    const spTotalFlags = dates.map(d => {
+      const v = byDate.get(d);
+      return v.sp830 || v.sp1030 || v.spSpanish;
+    });
+
+    this.destroyChart('timeseries');
+    const ctx = document.getElementById('chart-timeseries').getContext('2d');
+
+    // Build trend-line datasets from OLS regression on each series.
+    // The regression is fit to the selected window (last N weeks) and the
+    // line is drawn only across that window, so it matches what the Weekly
+    // Rate widget is computing.
+    const showTrends = document.getElementById('show-trends')?.checked;
+    const trendWindow = document.getElementById('trend-window')?.value || '26';
+    const trendDataset = (label, colorVar, values) => {
+      const pts = values.map((y, x) => (y == null ? null : { x, y })).filter(Boolean);
+      let fitPts = pts;
+      if (trendWindow !== 'all') {
+        const n = parseInt(trendWindow, 10);
+        fitPts = pts.slice(-n);
+      }
+      if (fitPts.length < 2) return null;
+      const reg = linearRegression(fitPts);
+      if (!reg) return null;
+      const minX = fitPts[0].x;
+      const data = values.map((_, i) => (i >= minX ? reg.predict(i) : null));
+      return {
+        label: `${label} trend`,
+        data,
+        borderColor: getVar(colorVar),
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0,
+        spanGaps: false, // so the line starts cleanly at the fit window
+        // Tag so tooltip callback can skip these
+        isTrend: true,
+      };
+    };
+    const trendSets = showTrends ? [
+      trendDataset('8:30',   '--c-830',     s830),
+      trendDataset('10:30',  '--c-1030',    s1030),
+      trendDataset('Spanish','--c-spanish', sSp),
+      trendDataset('Total',  '--c-combined', sTotal),
+    ].filter(Boolean) : [];
+
+    this.charts.timeseries = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: '8:30 English', data: s830,
+            borderColor: getVar('--c-830'), backgroundColor: getVar('--c-830') + '33',
+            tension: 0.25, spanGaps: false,
+            pointStyle: styleFor(sp830Flags),
+            pointRadius: radiusFor(sp830Flags, 2),
+            pointHoverRadius: radiusFor(sp830Flags, 5),
+          },
+          {
+            label: '10:30 English', data: s1030,
+            borderColor: getVar('--c-1030'), backgroundColor: getVar('--c-1030') + '33',
+            tension: 0.25, spanGaps: false,
+            pointStyle: styleFor(sp1030Flags),
+            pointRadius: radiusFor(sp1030Flags, 2),
+            pointHoverRadius: radiusFor(sp1030Flags, 5),
+          },
+          {
+            label: 'Spanish', data: sSp,
+            borderColor: getVar('--c-spanish'), backgroundColor: getVar('--c-spanish') + '33',
+            tension: 0.25, spanGaps: false,
+            pointStyle: styleFor(spSpFlags),
+            pointRadius: radiusFor(spSpFlags, 2),
+            pointHoverRadius: radiusFor(spSpFlags, 5),
+          },
+          {
+            label: 'Total (all services)', data: sTotal,
+            borderColor: getVar('--c-combined'), backgroundColor: getVar('--c-combined') + '22',
+            tension: 0.25, borderDash: [4, 4], hidden: true,
+            pointStyle: styleFor(spTotalFlags),
+            pointRadius: radiusFor(spTotalFlags, 0),
+            pointHoverRadius: radiusFor(spTotalFlags, 5),
+          },
+          ...trendSets,
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom' },
+          annotation: false,
+          tooltip: {
+            filter: (item) => !item.dataset.isTrend,
+            callbacks: { afterBody: (items) => {
+              const item = items[0];
+              if (!item) return '';
+              const i = item.dataIndex;
+              // Flag any service on this Sunday that was marked special
+              const flags = [
+                { label: '8:30', sp: sp830Flags[i] },
+                { label: '10:30', sp: sp1030Flags[i] },
+                { label: 'Spanish', sp: spSpFlags[i] },
+              ].filter(f => f.sp);
+              const specialsNote = flags.length
+                ? `\n  ★ Special: ${flags.map(f => f.label).join(', ')} (excluded from stats)`
+                : '';
+              if (item.dataset.label === '8:30 English' || item.dataset.label === '10:30 English') {
+                const v = item.parsed.y;
+                return `  ${((v / CAP_COMFORT) * 100).toFixed(1)}% of 248 · ${((v / CAP_EXPANDED) * 100).toFixed(1)}% of 284${specialsNote}`;
+              }
+              return specialsNote.trim() ? specialsNote.trim() : '';
+            } }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Attendance' } }
+        }
+      }
+    });
+  },
+
+  renderMonthly() {
+    const buckets = Array.from({length: 12}, () => []);
+    // Use aggregationRecords so months with recurring specials (e.g. April
+    // with Easter, December with Christmas) aren't inflated by those outliers.
+    for (const r of this.aggregationRecords) {
+      if (!r.hasCount) continue;
+      if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
+      buckets[r.date.getMonth()].push({ dateKey: r.dateKey, count: effectiveCount(r) });
+    }
+    const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    // Average combined attendance per Sunday, by month
+    const avgs = buckets.map(arr => {
+      // Group by dateKey (sum services on same Sunday), average those sums
+      const byDate = new Map();
+      for (const r of arr) byDate.set(r.dateKey, (byDate.get(r.dateKey) || 0) + r.count);
+      if (byDate.size === 0) return 0;
+      const vals = Array.from(byDate.values());
+      return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length);
+    });
+
+    this.destroyChart('monthly');
+    const ctx = document.getElementById('chart-monthly').getContext('2d');
+    this.charts.monthly = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: monthLabels,
+        datasets: [{
+          label: 'Avg combined attendance per Sunday',
+          data: avgs,
+          backgroundColor: getVar('--c-combined') + 'cc',
+          borderColor: getVar('--c-combined'),
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Avg attendance' } } }
+      }
+    });
+  },
+
+  renderYoY() {
+    const service = document.getElementById('yoy-service').value;
+    const byYearWeek = new Map(); // year -> [{week, count}]
+    // Use aggregationRecords so specials don't cause year-over-year spikes at
+    // the same week every year.
+    for (const r of this.aggregationRecords) {
+      if (!r.hasCount) continue;
+      if (service === 'Combined') {
+        if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
+      } else {
+        if (r.slot !== service) continue;
+      }
+      const value = effectiveCount(r);
+      const y = r.date.getFullYear();
+      const week = weekOfYear(r.date);
+      if (!byYearWeek.has(y)) byYearWeek.set(y, new Map());
+      const wmap = byYearWeek.get(y);
+      wmap.set(week, (wmap.get(week) || 0) + value);
+    }
+
+    const years = Array.from(byYearWeek.keys()).sort();
+    const labels = Array.from({length: 53}, (_, i) => `W${i+1}`);
+    const colors = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
+    const datasets = years.map((y, idx) => {
+      const wmap = byYearWeek.get(y);
+      const data = labels.map((_, i) => wmap.get(i+1) ?? null);
+      return {
+        label: String(y),
+        data,
+        borderColor: colors[idx % colors.length],
+        backgroundColor: colors[idx % colors.length] + '22',
+        tension: 0.25,
+        spanGaps: true,
+        pointRadius: 1.5
+      };
+    });
+
+    this.destroyChart('yoy');
+    const ctx = document.getElementById('chart-yoy').getContext('2d');
+    this.charts.yoy = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          x: { title: { display: true, text: 'Week of year' } },
+          y: { beginAtZero: true, title: { display: true, text: 'Attendance' } }
+        }
+      }
+    });
+  },
+
+  renderTable() {
+    const tbody = document.getElementById('attendance-tbody');
+    const rows = this.filtered
+      .slice()
+      .sort((a, b) => b.date - a.date || a.time.localeCompare(b.time));
+
+    // Limit to most recent 2000 for performance; user can filter to narrow.
+    // Bumped from 500 so older years don't get sliced off the bottom — at
+    // ~3 services/week, 2000 rows covers ~13 years of history.
+    const LIMIT = 2000;
+    const display = rows.slice(0, LIMIT);
+    document.getElementById('table-count').textContent =
+      `${this.filtered.length} rows${rows.length > LIMIT ? ` (showing ${LIMIT} most recent)` : ''}`;
+
+    tbody.innerHTML = display.map(r => {
+      const usesWorshipCenter = (r.slot === '8:30' || r.slot === '10:30' || r.slot === 'Bilingual');
+      const total = (r.count || 0) + (r.nursery || 0);
+      const effective = effectiveCount(r);
+      const pct248 = r.hasCount ? (effective / CAP_COMFORT) * 100 : null;
+      const pct284 = r.hasCount ? (effective / CAP_EXPANDED) * 100 : null;
+      let rowClass = '';
+      if (usesWorshipCenter && r.hasCount) {
+        if (effective / CAP_COMFORT >= PCT_RED) rowClass = 'cap-red';
+        else if (effective / CAP_COMFORT >= PCT_YELLOW) rowClass = 'cap-yellow';
+      }
+      const serviceLabel = serviceDisplayName(r);
+      const attendanceCell = r.hasCount
+        ? (r.count === null || r.count === 0 ? '<span class="muted">—</span>' : r.count)
+        : (r.count === 0 ? '<span class="muted">no service</span>' : '<span class="muted">—</span>');
+      const nurseryCell = r.nursery > 0 ? r.nursery : '<span class="muted">—</span>';
+      const totalCell = r.hasCount ? total : '<span class="muted">—</span>';
+      const pct248Cell = (usesWorshipCenter && r.hasCount) ? pct248.toFixed(1) + '%' : '<span class="muted">—</span>';
+      const pct284Cell = (usesWorshipCenter && r.hasCount) ? pct284.toFixed(1) + '%' : '<span class="muted">—</span>';
+      const isSpecial = this.isSpecialRecord(r);
+      if (isSpecial) rowClass += ' is-special';
+      const delBtn = `<button class="row-delete" title="Delete this entry" onclick="app.deleteEntry('${r.dateKey}','${r.time}','${r.type}')">&times;</button>`;
+      const editBtn = `<button class="row-edit" title="Edit this entry (change date, time, count, etc.)" onclick="app.openEditModal('${r.dateKey}','${r.time}','${r.type}')">&#9998;</button>`;
+      const specialBtn = `<button class="row-special${isSpecial ? ' is-special' : ''}" title="${isSpecial ? 'Unmark as special service' : 'Mark as special service (Easter, Christmas, etc.). Excluded from averages/trends.'}" onclick="app.toggleSpecial('${r.dateKey}','${r.time}','${r.type}')">${isSpecial ? '★' : '☆'}</button>`;
+      const anomaly = this.anomalies?.get(`${r.dateKey}|${r.time}|${r.type}`);
+      const anomalyBadge = anomaly
+        ? `<span class="anomaly-badge ${anomaly.z > 0 ? 'high' : 'low'}" title="${anomaly.z > 0 ? 'Unusually high' : 'Unusually low'}: ${anomaly.value} vs 12-wk avg ${anomaly.mean} (±${anomaly.sigma}) — ${anomaly.z.toFixed(1)}σ">⚠ ${anomaly.z > 0 ? 'high' : 'low'}</span> `
+        : '';
+      const specialBadge = isSpecial
+        ? `<span class="special-badge" title="Marked as a special service — excluded from averages and trends while the Specials filter is set to Exclude.">★ special</span> `
+        : '';
+      return `<tr class="${rowClass}">
+        <td>${formatLongDate(r.date)}</td>
+        <td>${serviceLabel}</td>
+        <td class="num">${attendanceCell}</td>
+        <td class="num">${nurseryCell}</td>
+        <td class="num">${totalCell}</td>
+        <td class="num">${pct248Cell}</td>
+        <td class="num">${pct284Cell}</td>
+        <td class="note-cell">${specialBadge}${anomalyBadge}${escapeHTML(r.notes || '')}</td>
+        <td class="col-actions">${specialBtn}${editBtn}${delBtn}</td>
+      </tr>`;
+    }).join('');
+  },
+
+  destroyChart(key) {
+    if (this.charts[key]) { this.charts[key].destroy(); this.charts[key] = null; }
+  },
+
+  // ---------- Admin actions ----------
+  setDefaultAddDate() {
+    const d = new Date();
+    // snap to previous Sunday
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    document.getElementById('add-date').value = toISO(d);
+  },
+
+  addEntry() {
+    const dateStr = document.getElementById('add-date').value;
+    const c830 = document.getElementById('add-830').value;
+    const c1030 = document.getElementById('add-1030').value;
+    const cSp = document.getElementById('add-spanish').value;
+    const n830 = document.getElementById('add-830-nursery').value;
+    const n1030 = document.getElementById('add-1030-nursery').value;
+    const nSp = document.getElementById('add-spanish-nursery').value;
+    const notes = document.getElementById('add-notes').value.trim();
+    if (!dateStr) { toast('Please enter a date', 'error'); return; }
+    const date = new Date(dateStr + 'T00:00:00');
+    if (isNaN(date)) { toast('Invalid date', 'error'); return; }
+
+    const toNum = v => v === '' ? null : parseInt(v, 10);
+    const newEntries = [];
+    if (c830 !== '' || n830 !== '') newEntries.push({ date: dateStr, time: '8:30 AM', type: 'English', count: toNum(c830) ?? 0, nursery: toNum(n830) ?? 0, notes });
+    if (c1030 !== '' || n1030 !== '') newEntries.push({ date: dateStr, time: '10:30 AM', type: 'English', count: toNum(c1030) ?? 0, nursery: toNum(n1030) ?? 0, notes });
+    if (cSp !== '' || nSp !== '') newEntries.push({ date: dateStr, time: '11:00 AM', type: 'Spanish', count: toNum(cSp) ?? 0, nursery: toNum(nSp) ?? 0, notes });
+
+    if (newEntries.length === 0) { toast('Enter at least one attendance count', 'error'); return; }
+
+    // Check for conflicts with existing data for this date (slot-based, so a
+    // new 10:30 English conflicts with an existing 10:30 Bilingual, etc.)
+    const conflicts = [];
+    for (const e of newEntries) {
+      const existing = findConflict(this.records, e);
+      if (existing) conflicts.push({ existing, newEntry: e });
+    }
+
+    if (conflicts.length > 0) {
+      this._pendingEntries = newEntries;
+      this.showConflictModal(conflicts, dateStr);
+      return;
+    }
+
+    this.commitEntries(newEntries);
+  },
+
+  showConflictModal(conflicts, dateStr) {
+    document.getElementById('conflict-date').textContent =
+      formatLongDate(new Date(dateStr + 'T00:00:00'));
+    const rows = conflicts.map(c => {
+      return `<tr>
+        <td>${serviceDisplayName(c.existing)}</td>
+        <td class="col-old">${formatCountCell(c.existing.count, c.existing.nursery)}</td>
+        <td class="col-new">${formatCountCell(c.newEntry.count, c.newEntry.nursery)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('conflict-rows').innerHTML = rows;
+    document.getElementById('conflict-modal').classList.add('show');
+  },
+
+  cancelOverwrite() {
+    document.getElementById('conflict-modal').classList.remove('show');
+    this._pendingEntries = null;
+    toast('Cancelled — existing data kept', 'error');
+  },
+
+  confirmOverwrite() {
+    document.getElementById('conflict-modal').classList.remove('show');
+    if (this._pendingEntries) {
+      this.commitEntries(this._pendingEntries, true);
+      this._pendingEntries = null;
+    }
+  },
+
+  async commitEntries(newEntries, isOverwrite) {
+    // Sheet mode: push writes to the server, then re-pull.
+    if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
+      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      const records = [];
+      for (const e of newEntries) {
+        // If this is an overwrite that changes the primary key (e.g. Bilingual → English),
+        // we need to soft-delete the old record on the server too.
+        if (isOverwrite) {
+          const old = findConflict(this.records, e);
+          const k = old ? `${old.dateKey}|${old.time}|${old.type}` : null;
+          const newK = `${e.date}|${e.time}|${e.type}`;
+          if (old && k !== newK) {
+            records.push({
+              date: old.dateKey, time: old.time, type: old.type,
+              count: old.count, nursery: old.nursery || 0, notes: old.notes || '',
+              is_special: this.isSpecialRecord(old),
+              is_deleted: true,
+            });
+          }
+        }
+        records.push({
+          date: e.date, time: e.time, type: e.type,
+          count: e.count, nursery: e.nursery || 0, notes: e.notes || '',
+          is_special: false, is_deleted: false,
+        });
+      }
+      this.updateSyncStatus('saving', `Saving ${newEntries.length}…`);
+      try {
+        await api.post({ action: 'batch_upsert', records });
+        ['add-830','add-1030','add-spanish','add-830-nursery','add-1030-nursery','add-spanish-nursery','add-notes']
+          .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        await this.refreshFromSheet();
+        const verb = isOverwrite ? 'Overwrote' : 'Added';
+        toast(`${verb} ${newEntries.length} service entr${newEntries.length === 1 ? 'y' : 'ies'}`, 'success');
+      } catch (err) {
+        console.error(err);
+        this.updateSyncStatus('error', 'Save failed');
+        toast('Save failed: ' + err.message, 'error');
+      }
+      return;
+    }
+
+    // Local mode (pre-migration fallback).
+    const existing = this.loadUserEntriesRaw();
+    const key = e => `${e.date}|${e.time}|${e.type}`;
+    const map = new Map(existing.map(e => [key(e), e]));
+    for (const e of newEntries) map.set(key(e), e);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(map.values())));
+
+    // Make sure any new entry's own key is NOT in the deleted set (re-adding
+    // should un-delete), and if this overwrite replaces an existing record
+    // with a different key (e.g. Bilingual→English on the same slot), hide the
+    // old record by adding its key to the deleted set.
+    const deleted = this.loadDeletedKeys();
+    for (const e of newEntries) {
+      deleted.delete(key(e));
+      if (isOverwrite) {
+        const old = findConflict(this.records, e);
+        if (old && key(old) !== key(e)) deleted.add(key(old));
+      }
+    }
+    this.saveDeletedKeys(deleted);
+
+    ['add-830','add-1030','add-spanish','add-830-nursery','add-1030-nursery','add-spanish-nursery','add-notes']
+      .forEach(id => document.getElementById(id).value = '');
+
+    this.records = this.loadAll();
+    this.populateYearFilter();
+    this.applyFilters();
+    this.updateUserCount();
+    const verb = isOverwrite ? 'Overwrote' : 'Added';
+    toast(`${verb} ${newEntries.length} service entr${newEntries.length === 1 ? 'y' : 'ies'}`, 'success');
+  },
+
+  async deleteEntry(dateKey, time, type) {
+    const r = this.records.find(x => x.dateKey === dateKey && x.time === time && x.type === type);
+    const label = r ? `${formatLongDate(r.date)} — ${serviceDisplayName(r)}` : `${dateKey} ${time} ${type}`;
+    if (!confirm(`Delete this entry?\n\n${label}\n\nYou can restore it later from the admin section.`)) return;
+
+    // Sheet mode: soft-delete on the server so other viewers lose sight of it too.
+    if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
+      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      this.updateSyncStatus('saving', 'Deleting…');
+      try {
+        await api.post({
+          action: 'delete',
+          record: {
+            date: dateKey, time, type,
+            count: r?.count ?? null, nursery: r?.nursery || 0, notes: r?.notes || '',
+            is_special: r ? this.isSpecialRecord(r) : false,
+          },
+        });
+        await this.refreshFromSheet();
+        toast('Entry deleted', 'success');
+      } catch (err) {
+        console.error(err);
+        this.updateSyncStatus('error', 'Delete failed');
+        toast('Delete failed: ' + err.message, 'error');
+      }
+      return;
+    }
+
+    // Local mode.
+    const k = `${dateKey}|${time}|${type}`;
+    // Also drop from user entries so a "clear user entries" re-import works cleanly.
+    const userEntries = this.loadUserEntriesRaw().filter(e => `${e.date}|${e.time}|${e.type}` !== k);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userEntries));
+    const deleted = this.loadDeletedKeys();
+    deleted.add(k);
+    this.saveDeletedKeys(deleted);
+    this.records = this.loadAll();
+    this.populateYearFilter();
+    this.applyFilters();
+    this.updateUserCount();
+    toast('Entry deleted', 'success');
+  },
+
+  // Edit flow: open a modal pre-filled from the record, let user change any
+  // field, then save. If the primary key (date|time|type) changes, the old
+  // key gets added to the deleted set and the new key gets written as a user
+  // entry; if the key stays the same, we just write a user entry that wins
+  // the merge in loadAll().
+  openEditModal(dateKey, time, type) {
+    const r = this.records.find(x => x.dateKey === dateKey && x.time === time && x.type === type);
+    if (!r) { toast('Entry not found', 'error'); return; }
+    this._editOriginal = { dateKey, time, type };
+    document.getElementById('edit-date').value = dateKey;
+    document.getElementById('edit-time').value = time;
+    document.getElementById('edit-type').value = r.type;
+    document.getElementById('edit-count').value = r.hasCount ? (r.count ?? '') : '';
+    document.getElementById('edit-nursery').value = r.nursery || '';
+    document.getElementById('edit-notes').value = r.notes || '';
+    document.getElementById('edit-original-label').textContent =
+      `Original: ${formatLongDate(r.date)} — ${serviceDisplayName(r)} (${r.hasCount ? r.count : 'no count'})`;
+    document.getElementById('edit-modal').classList.add('show');
+  },
+
+  cancelEdit() {
+    document.getElementById('edit-modal').classList.remove('show');
+    this._editOriginal = null;
+  },
+
+  async saveEdit() {
+    if (!this._editOriginal) return;
+    const dateStr = document.getElementById('edit-date').value;
+    const time = document.getElementById('edit-time').value.trim();
+    const type = document.getElementById('edit-type').value;
+    const count = document.getElementById('edit-count').value;
+    const nursery = document.getElementById('edit-nursery').value;
+    const notes = document.getElementById('edit-notes').value.trim();
+
+    if (!dateStr) { toast('Date required', 'error'); return; }
+    const date = new Date(dateStr + 'T00:00:00');
+    if (isNaN(date)) { toast('Invalid date', 'error'); return; }
+    if (!time) { toast('Time required', 'error'); return; }
+    if (count === '' && nursery === '') {
+      toast('Enter a count and/or nursery value', 'error');
+      return;
+    }
+
+    const toNum = v => v === '' ? null : parseInt(v, 10);
+    const newEntry = {
+      date: dateStr,
+      time,
+      type,
+      count: toNum(count) ?? 0,
+      nursery: toNum(nursery) ?? 0,
+      notes,
+    };
+    const newKey = `${newEntry.date}|${newEntry.time}|${newEntry.type}`;
+    const oldKey = `${this._editOriginal.dateKey}|${this._editOriginal.time}|${this._editOriginal.type}`;
+
+    // If the primary key changed, make sure the new key isn't already occupied
+    // by some OTHER record (not the one we're editing).
+    if (newKey !== oldKey) {
+      const collision = this.records.find(x =>
+        `${x.dateKey}|${x.time}|${x.type}` === newKey
+      );
+      if (collision) {
+        if (!confirm(`An entry already exists at:\n\n${formatLongDate(collision.date)} — ${serviceDisplayName(collision)}\n\nOverwrite it?`)) return;
+      }
+    }
+
+    // Sheet mode: send upsert (and optionally soft-delete the old key).
+    if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
+      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      // Preserve the special flag across a key change.
+      const wasSpecial = this._specialSet?.has(oldKey) || false;
+      const records = [];
+      if (newKey !== oldKey) {
+        const old = this.records.find(x =>
+          `${x.dateKey}|${x.time}|${x.type}` === oldKey
+        );
+        if (old) {
+          records.push({
+            date: old.dateKey, time: old.time, type: old.type,
+            count: old.count, nursery: old.nursery || 0, notes: old.notes || '',
+            is_special: wasSpecial,
+            is_deleted: true,
+          });
+        }
+      }
+      records.push({
+        date: newEntry.date, time: newEntry.time, type: newEntry.type,
+        count: newEntry.count, nursery: newEntry.nursery, notes: newEntry.notes,
+        is_special: wasSpecial,
+        is_deleted: false,
+      });
+
+      document.getElementById('edit-modal').classList.remove('show');
+      this._editOriginal = null;
+
+      this.updateSyncStatus('saving', 'Saving edit…');
+      try {
+        await api.post({ action: 'batch_upsert', records });
+        await this.refreshFromSheet();
+        toast('Entry updated', 'success');
+      } catch (err) {
+        console.error(err);
+        this.updateSyncStatus('error', 'Save failed');
+        toast('Save failed: ' + err.message, 'error');
+      }
+      return;
+    }
+
+    // Local mode: user entries + deleted set bookkeeping.
+    const userEntries = this.loadUserEntriesRaw().filter(e => {
+      const k = `${e.date}|${e.time}|${e.type}`;
+      return k !== oldKey && k !== newKey;
+    });
+    userEntries.push(newEntry);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userEntries));
+
+    // Bookkeeping on the deleted set: if the key changed, hide the old record
+    // (may have been a seed entry). The new key should never be marked deleted.
+    const deleted = this.loadDeletedKeys();
+    deleted.delete(newKey);
+    if (newKey !== oldKey) deleted.add(oldKey);
+    this.saveDeletedKeys(deleted);
+
+    // If the user had flagged the record as special, move the flag to the new key.
+    const specials = this.loadSpecialKeys();
+    if (specials.has(oldKey) && newKey !== oldKey) {
+      specials.delete(oldKey);
+      specials.add(newKey);
+      this.saveSpecialKeys(specials);
+      this._specialSet = specials;
+    }
+
+    document.getElementById('edit-modal').classList.remove('show');
+    this._editOriginal = null;
+
+    this.records = this.loadAll();
+    this.populateYearFilter();
+    this.applyFilters();
+    this.updateUserCount();
+    toast('Entry updated', 'success');
+  },
+
+  async restoreDeletedEntries() {
+    // Sheet mode: pull the full sheet (including soft-deleted rows), ask the
+    // server to flip is_deleted=false on each, then re-fetch.
+    if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
+      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      try {
+        const data = await api.get();
+        const deletedRows = (data.records || []).filter(r => toBoolish(r.is_deleted));
+        if (deletedRows.length === 0) { toast('Nothing to restore on the server', 'error'); return; }
+        if (!confirm(`Restore ${deletedRows.length} soft-deleted entr${deletedRows.length === 1 ? 'y' : 'ies'} from the sheet?`)) return;
+        this.updateSyncStatus('saving', `Restoring ${deletedRows.length}…`);
+        const records = deletedRows.map(r => ({
+          date: String(r.date).slice(0, 10),
+          time: r.time, type: r.type,
+          count: r.count === '' || r.count == null ? null : Number(r.count),
+          nursery: r.nursery === '' || r.nursery == null ? 0 : Number(r.nursery),
+          notes: r.notes || '',
+          is_special: toBoolish(r.is_special),
+          is_deleted: false,
+        }));
+        await api.post({ action: 'batch_upsert', records });
+        await this.refreshFromSheet();
+        toast(`Restored ${deletedRows.length} entr${deletedRows.length === 1 ? 'y' : 'ies'}`, 'success');
+      } catch (err) {
+        console.error(err);
+        this.updateSyncStatus('error', 'Restore failed');
+        toast('Restore failed: ' + err.message, 'error');
+      }
+      return;
+    }
+
+    // Local mode.
+    const n = this.loadDeletedKeys().size;
+    if (n === 0) { toast('Nothing to restore', 'error'); return; }
+    if (!confirm(`Restore ${n} deleted entr${n === 1 ? 'y' : 'ies'}?`)) return;
+    localStorage.removeItem(DELETED_KEY);
+    this.records = this.loadAll();
+    this.populateYearFilter();
+    this.applyFilters();
+    this.updateDeletedCount();
+    toast(`Restored ${n} entr${n === 1 ? 'y' : 'ies'}`, 'success');
+  },
+
+  clearUserEntries() {
+    // In sheet mode there's no separate "user entries" bucket — everything
+    // lives in the sheet. Nothing to clear locally beyond the cache.
+    if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
+      toast('In shared-sheet mode, individual entries are deleted from the table rows', 'error');
+      return;
+    }
+    if (!confirm('Remove all entries you have added in this browser? (The original CSV data will remain.)')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    this.records = this.loadAll();
+    this.populateYearFilter();
+    this.applyFilters();
+    this.updateUserCount();
+    toast('User entries cleared', 'success');
+  },
+
+  // ---------- Import / Export ----------
+  exportCSV() {
+    const rows = this.records.slice().sort((a,b) => a.date - b.date);
+    const header = 'Event,Date,Time,Type,Count,Nursery,Notes';
+    const body = rows.map(r => {
+      const dateStr = formatLongDate(r.date);
+      const count = r.count === null || r.count === undefined ? '' : r.count;
+      const nursery = r.nursery || 0;
+      const notes = (r.notes || '').replace(/,/g, ';');
+      return `Sunday Service,${dateStr},${r.time},${r.type},${count},${nursery},${notes}`;
+    }).join('\n');
+    const csv = header + '\n' + body + '\n';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mefc-attendance-${toISO(new Date())}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV exported', 'success');
+  },
+
+  importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = parseCSV(e.target.result);
+        if (parsed.length === 0) throw new Error('No rows parsed');
+        if (!confirm(`Import ${parsed.length} rows? This will replace your current user-added entries.`)) return;
+        const serializable = parsed.map(r => ({
+          date: r.dateKey, time: r.time, type: r.type, count: r.count, nursery: r.nursery || 0, notes: r.notes || ''
+        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+        this.records = this.loadAll();
+        this.populateYearFilter();
+        this.applyFilters();
+        this.updateUserCount();
+        toast(`Imported ${parsed.length} rows`, 'success');
+      } catch (err) {
+        console.error(err);
+        toast('Import failed: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  },
+};
+
+// -------------- Utilities --------------
+function useNursery() {
+  const el = document.getElementById('toggle-nursery-mode');
+  return el ? el.value === 'with' : true;
+}
+
+// Apps Script serializes booleans as native bools from JSON but legacy rows
+// may have "TRUE"/"FALSE" strings — accept either.
+function toBoolish(v) {
+  if (v === true) return true;
+  if (v === false || v == null || v === '') return false;
+  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';
+  return Boolean(v);
+}
+
+// "just now", "3m ago", "2h ago", "yesterday", "Apr 10".
+function relativeTime(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '';
+  const diff = (Date.now() - date.getTime()) / 1000;
+  if (diff < 30) return 'just now';
+  if (diff < 90) return '1m ago';
+  if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
+  if (diff < 7200) return '1h ago';
+  if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
+  if (diff < 172800) return 'yesterday';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function effectiveCount(r) {
+  if (r.count === null || r.count === undefined) return 0;
+  return useNursery() ? r.count + (r.nursery || 0) : r.count;
+}
+
+function parseCSV(csv) {
+  const lines = csv.trim().split(/\r?\n/);
+  if (lines.length === 0) return [];
+  const header = lines[0].toLowerCase();
+  const hasNursery = header.includes('nursery');
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const parts = splitCSVLine(line);
+    if (parts.length < 5) continue;
+    const date = parts[1];
+    const time = parts[2];
+    const type = parts[3];
+    const count = parts[4];
+    let nursery = 0;
+    let notesArr;
+    if (hasNursery) {
+      nursery = parseInt((parts[5] || '').trim(), 10) || 0;
+      notesArr = parts.slice(6);
+    } else {
+      notesArr = parts.slice(5);
+    }
+    if (!date || !time || !type) continue;
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate)) continue;
+    const countRaw = (count || '').trim();
+    const countNum = countRaw === '' ? null : parseInt(countRaw, 10);
+    const notes = (notesArr.join(',') || '').replace(/;/g, ',').trim();
+    out.push(enrichRecord({
+      date: toISO(parsedDate),
+      time: time.trim(),
+      type: type.trim(),
+      count: countNum,
+      nursery,
+      notes
+    }));
+  }
+  return out;
+}
+
+function splitCSVLine(line) {
+  // Simple CSV split — doesn't handle quoted commas but our data doesn't have them
+  return line.split(',');
+}
+
+// Ordinary least squares regression. points: [{x, y}]. Returns {slope,
+// intercept, r2, predict(x)} or null if too few points / zero variance in x.
+function linearRegression(points) {
+  const n = points.length;
+  if (n < 2) return null;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (const p of points) { sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; }
+  const denom = n * sxx - sx * sx;
+  if (denom === 0) return null;
+  const slope = (n * sxy - sx * sy) / denom;
+  const intercept = (sy - slope * sx) / n;
+  const meanY = sy / n;
+  let ssRes = 0, ssTot = 0;
+  for (const p of points) {
+    const yhat = slope * p.x + intercept;
+    ssRes += (p.y - yhat) ** 2;
+    ssTot += (p.y - meanY) ** 2;
+  }
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
+  return { slope, intercept, r2, n, predict: x => slope * x + intercept };
+}
+
+// Find an existing record that occupies the same worship slot as newEntry.
+// Slot-based so a new "10:30 AM English" conflicts with an existing
+// "10:30 AM Bilingual" (Easter), and any Spanish entry conflicts with any
+// other Spanish entry for that date regardless of time.
+function findConflict(records, newEntry) {
+  return records.find(r => {
+    if (r.dateKey !== newEntry.date || !r.hasCount) return false;
+    if (newEntry.type === 'Spanish') return r.slot === 'Spanish';
+    if (newEntry.time === '8:30 AM') return r.time === '8:30 AM' && r.slot !== 'Spanish';
+    if (newEntry.time === '10:30 AM') return r.time === '10:30 AM' && r.slot !== 'Spanish';
+    return false;
+  }) || null;
+}
+
+function enrichRecord(r) {
+  const date = typeof r.date === 'string' ? new Date(r.date + (r.date.length === 10 ? 'T00:00:00' : '')) : r.date;
+  const dateKey = toISO(date);
+  const time = r.time;
+  const type = r.type;
+  let slot;
+  if (type === 'Spanish') slot = 'Spanish';
+  else if (time === '8:30 AM' && type === 'English') slot = '8:30';
+  else if (time === '10:30 AM' && type === 'English') slot = '10:30';
+  else if (type === 'Bilingual') slot = 'Bilingual';
+  else slot = 'Other';
+  const count = r.count === undefined || r.count === null || isNaN(r.count) ? null : r.count;
+  const nursery = (r.nursery === undefined || r.nursery === null || isNaN(r.nursery)) ? 0 : r.nursery;
+  const hasCount = (count !== null && count > 0) || nursery > 0;
+  return { date, dateKey, time, type, slot, count, nursery, hasCount, notes: r.notes || '' };
+}
+
+function toISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatLongDate(d) {
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function formatShortDate(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+function weekOfYear(d) {
+  const start = new Date(d.getFullYear(), 0, 1);
+  const diff = (d - start) + ((start.getTimezoneOffset() - d.getTimezoneOffset()) * 60 * 1000);
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  return Math.floor(diff / oneWeek) + 1;
+}
+
+function formatCountCell(count, nursery) {
+  const c = (count === null || count === undefined) ? '—' : count;
+  const n = nursery || 0;
+  if (n > 0) return `${c} <span style="color:var(--text-muted);font-weight:400">+ ${n} nursery</span>`;
+  return String(c);
+}
+
+function serviceDisplayName(r) {
+  if (r.slot === '8:30') return '8:30 AM English';
+  if (r.slot === '10:30') return '10:30 AM English';
+  if (r.slot === 'Spanish') return `${r.time} Spanish`;
+  if (r.slot === 'Bilingual') return `${r.time} Bilingual`;
+  return `${r.time} ${r.type}`;
+}
+
+function widget(label, value, sub, accentClass, help) {
+  const valueDisplay = typeof value === 'number' ? value.toLocaleString() : value;
+  const helpIcon = help
+    ? `<span class="widget-help" tabindex="0">?<span class="widget-help-tip">${escapeHTML(help)}</span></span>`
+    : '';
+  return `<div class="widget ${accentClass}">
+    ${helpIcon}
+    <div class="widget-label">${label}</div>
+    <div class="widget-value">${valueDisplay}</div>
+    <div class="widget-sub">${sub || ''}</div>
+  </div>`;
+}
+
+function pctLabel(v) {
+  const p248 = ((v / CAP_COMFORT) * 100).toFixed(1);
+  const mode = useNursery() ? 'with nursery' : 'without nursery';
+  return `${p248}% of 248 · ${mode}`;
+}
+
+function getVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => { t.className = 'toast'; }, 2500);
+}
+
+// -------------- Boot --------------
+app.init();
+</script>
+</body>
+</html>
