@@ -503,7 +503,7 @@
 <header>
   <div class="header-main">
     <h1>MEFC Attendance Dashboard</h1>
-    <p>Tracking Sunday service attendance — worship center capacity: 248 (comfortable) / 284 (expanded)</p>
+    <p>Tracking Sunday service attendance — worship center capacity: 252 (comfortable) / 288 (expanded)</p>
   </div>
   <div class="auth-area" id="auth-area">
     <div class="sync-status" id="sync-status" title="">
@@ -639,8 +639,8 @@
       <span class="section-sub" id="table-count"></span>
     </div>
     <div class="capacity-legend" style="margin-bottom:12px">
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--yellow-bg);border:1px solid #fbbf24"></div>≥70% of 248 (≥174)</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--red-bg);border:1px solid #f87171"></div>≥80% of 248 (≥199)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--yellow-bg);border:1px solid #fbbf24"></div>≥70% of 252 (≥177)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--red-bg);border:1px solid #f87171"></div>≥80% of 252 (≥202)</div>
     </div>
     <div class="table-wrap">
       <table id="attendance-table">
@@ -651,8 +651,8 @@
             <th class="num">Attendance</th>
             <th class="num">Nursery</th>
             <th class="num">Total</th>
-            <th class="num">% of 248</th>
-            <th class="num">% of 284</th>
+            <th class="num">% of 252</th>
+            <th class="num">% of 288</th>
             <th>Notes</th>
             <th class="col-actions"></th>
           </tr>
@@ -1394,8 +1394,8 @@ const NURSERY_OVERRIDES = [
 ];
 
 // -------------- Constants --------------
-const CAP_COMFORT = 248;
-const CAP_EXPANDED = 284;
+const CAP_COMFORT = 252;
+const CAP_EXPANDED = 288;
 const PCT_YELLOW = 0.70;
 const PCT_RED = 0.80;
 const PCT_WIDGET_THRESHOLD = 0.75;
@@ -2115,20 +2115,20 @@ const app = {
     };
     const yoySub = (y) => y ? `${y.recent} now vs ${y.prior} yr ago` : 'Need ≥ 1 yr of data';
 
-    // Capacity forecast — when does each service hit 80% of 248 (= 198)?
+    // Capacity forecast — when does each service hit 80% of CAP_COMFORT?
     const forecast = (reg, label) => {
       if (!reg) return { text: '—', sub: 'Not enough data' };
       const target = CAP_COMFORT * PCT_RED;
       // current = last regression value (x = n-1)
       const current = reg.predict(reg.n - 1);
-      if (current >= target) return { text: 'At cap', sub: `${label} already ≥ 80% of 248` };
+      if (current >= target) return { text: 'At cap', sub: `${label} already ≥ 80% of ${CAP_COMFORT}` };
       if (reg.slope <= 0.1) return { text: 'Stable / declining', sub: `${label} not trending toward cap` };
       const weeksOut = (target - current) / reg.slope;
       if (weeksOut > 52 * 3) return { text: '> 3 yrs out', sub: `${label} trending toward cap slowly` };
       const eta = new Date();
       eta.setDate(eta.getDate() + Math.round(weeksOut * 7));
       const month = eta.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      return { text: `~ ${month}`, sub: `${label} hits 80% of 248 at current trend` };
+      return { text: `~ ${month}`, sub: `${label} hits 80% of ${CAP_COMFORT} at current trend` };
     };
     const fc830 = forecast(reg830, '8:30');
     const fc1030 = forecast(reg1030, '10:30');
@@ -2138,7 +2138,7 @@ const app = {
     const rateHelp = (svc) =>
       `The slope of the best-fit line through the last 12 Sundays of ${svc} attendance — i.e., on average, how many more (or fewer) people show up each week recently. R² is a trust score 0–1: close to 1 means the data really does follow that trend; close to 0 means it's too noisy to read much into the slope.`;
     const forecastHelp = (svc) =>
-      `If the recent ${svc} weekly rate keeps up, when does the trend line cross 80% of 248 (~ 198 people)? "At cap" means we're there already. "Stable / declining" means the trend isn't heading toward capacity. ">3 yrs out" means capacity isn't a near-term concern for ${svc}.`;
+      `If the recent ${svc} weekly rate keeps up, when does the trend line cross 80% of ${CAP_COMFORT} (~ ${Math.round(CAP_COMFORT * PCT_RED)} people)? "At cap" means we're there already. "Stable / declining" means the trend isn't heading toward capacity. ">3 yrs out" means capacity isn't a near-term concern for ${svc}.`;
 
     const coverage = this.dataCoverage(52);
     const coverageLabel = coverage.sundays === 0
@@ -2256,7 +2256,7 @@ const app = {
     // view" counter, not an average, so including specials is fine.
     const totalTracked = this.filtered.filter(r => r.hasCount).length;
 
-    // 8:30 & 10:30 exceeding 75% of 248 over past 12 mo
+    // 8:30 & 10:30 exceeding 75% of CAP_COMFORT over past 12 mo
     const threshold = CAP_COMFORT * PCT_WIDGET_THRESHOLD;
     const cnt830 = within12mo.filter(r => r.slot === '8:30' && effectiveCount(r) > threshold).length;
     const cnt1030 = within12mo.filter(r => r.slot === '10:30' && effectiveCount(r) > threshold).length;
@@ -2271,13 +2271,13 @@ const app = {
       widget('Services Tracked', totalTracked, 'In current filter range', '',
         'The total number of individual service records in your filter range. One Sunday with all three services held counts as 3. Use it to sanity-check that no data is missing for a filtered window.'),
       widget('8:30 Services ≥75% (12 mo)', cnt830, `Attendance > ${Math.round(threshold)}`, 'c-830',
-        `How many 8:30 Sundays in the last 12 months had attendance above 75% of 248 (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 8:30 services.`),
+        `How many 8:30 Sundays in the last 12 months had attendance above 75% of ${CAP_COMFORT} (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 8:30 services.`),
       widget('10:30 Services ≥75% (12 mo)', cnt1030, `Attendance > ${Math.round(threshold)}`, 'c-1030',
-        `How many 10:30 Sundays in the last 12 months had attendance above 75% of 248 (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 10:30 services.`),
+        `How many 10:30 Sundays in the last 12 months had attendance above 75% of ${CAP_COMFORT} (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 10:30 services.`),
       widget('8:30 Avg (Last 12 wks)', avg830 || '—', avg830 ? pctLabel(avg830) : '', 'c-830',
-        'Simple average attendance across the most recent 12 Sundays that had 8:30 data. The sub-text shows that average as a percent of the 248-seat comfortable capacity.'),
+        `Simple average attendance across the most recent 12 Sundays that had 8:30 data. The sub-text shows that average as a percent of the ${CAP_COMFORT}-seat comfortable capacity.`),
       widget('10:30 Avg (Last 12 wks)', avg1030 || '—', avg1030 ? pctLabel(avg1030) : '', 'c-1030',
-        'Simple average attendance across the most recent 12 Sundays that had 10:30 data. The sub-text shows that average as a percent of the 248-seat comfortable capacity.'),
+        `Simple average attendance across the most recent 12 Sundays that had 10:30 data. The sub-text shows that average as a percent of the ${CAP_COMFORT}-seat comfortable capacity.`),
       widget('Spanish Avg (Last 12 wks)', avgSpanish || '—', 'Per service', 'c-spanish',
         'Simple average attendance across the most recent 12 Sundays that had Spanish service data.'),
       widget('Combined Avg (Last 12 wks)', avgCombined || '—', 'Total per Sunday', 'c-combined',
@@ -2463,7 +2463,7 @@ const app = {
                 : '';
               if (item.dataset.label === '8:30 English' || item.dataset.label === '10:30 English') {
                 const v = item.parsed.y;
-                return `  ${((v / CAP_COMFORT) * 100).toFixed(1)}% of 248 · ${((v / CAP_EXPANDED) * 100).toFixed(1)}% of 284${specialsNote}`;
+                return `  ${((v / CAP_COMFORT) * 100).toFixed(1)}% of ${CAP_COMFORT} · ${((v / CAP_EXPANDED) * 100).toFixed(1)}% of ${CAP_EXPANDED}${specialsNote}`;
               }
               return specialsNote.trim() ? specialsNote.trim() : '';
             } }
@@ -3265,9 +3265,9 @@ function widget(label, value, sub, accentClass, help) {
 }
 
 function pctLabel(v) {
-  const p248 = ((v / CAP_COMFORT) * 100).toFixed(1);
+  const pct = ((v / CAP_COMFORT) * 100).toFixed(1);
   const mode = useNursery() ? 'with nursery' : 'without nursery';
-  return `${p248}% of 248 · ${mode}`;
+  return `${pct}% of ${CAP_COMFORT} · ${mode}`;
 }
 
 function getVar(name) {
