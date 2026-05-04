@@ -2413,12 +2413,37 @@ const app = {
         isTrend: true,
       };
     };
-    const trendSets = showTrends ? [
+    const perServiceTrends = showTrends ? [
       trendDataset('8:30',   '--c-830',     s830),
       trendDataset('10:30',  '--c-1030',    s1030),
       trendDataset('Spanish','--c-spanish', sSp),
-      trendDataset('Total',  '--c-combined', sTotal),
     ].filter(Boolean) : [];
+    // Total trend is the sum of the three per-service trends at each x.
+    // Built this way (rather than regressing summed totals) so it stays
+    // consistent with the visible component trends even when some Sundays
+    // are partial-coverage ‚Äî partial Sundays still contribute to each
+    // service's trend, but a per-Sunday Total regression would skip them.
+    const totalTrend = (perServiceTrends.length === 3) ? (() => {
+      const [t830, t1030, tSp] = perServiceTrends;
+      const data = t830.data.map((_, i) => {
+        const a = t830.data[i], b = t1030.data[i], c = tSp.data[i];
+        if (a == null || b == null || c == null) return null;
+        return a + b + c;
+      });
+      return {
+        label: 'Total trend',
+        data,
+        borderColor: getVar('--c-combined'),
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0,
+        spanGaps: false,
+        isTrend: true,
+      };
+    })() : null;
+    const trendSets = [...perServiceTrends, totalTrend].filter(Boolean);
 
     this.charts.timeseries = new Chart(ctx, {
       type: 'line',
