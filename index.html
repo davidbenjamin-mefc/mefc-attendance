@@ -503,11 +503,11 @@
 <header>
   <div class="header-main">
     <h1>MEFC Attendance Dashboard</h1>
-    <p>Tracking Sunday service attendance — worship center capacity: 252 (comfortable) / 288 (expanded)</p>
+    <p>Tracking Sunday service attendance ‚Äî worship center capacity: 252 (comfortable) / 288 (expanded)</p>
   </div>
   <div class="auth-area" id="auth-area">
     <div class="sync-status" id="sync-status" title="">
-      <span class="sync-dot"></span><span id="sync-status-text">Loading…</span>
+      <span class="sync-dot"></span><span id="sync-status-text">Loading‚Ä¶</span>
     </div>
     <button class="signin-btn" id="signin-btn" onclick="app.signIn()" style="display:none">Sign in to edit</button>
     <div class="user-menu" id="user-menu" style="display:none">
@@ -523,7 +523,7 @@
   <div id="migrate-banner" class="migrate-banner editor-only" style="display:none">
     <div>
       <strong>Your local data hasn't been migrated yet.</strong>
-      <div style="margin-top:3px">The Google Sheet is connected but empty. Click to push your current records to it — this makes them visible to everyone.</div>
+      <div style="margin-top:3px">The Google Sheet is connected but empty. Click to push your current records to it ‚Äî this makes them visible to everyone.</div>
     </div>
     <button class="primary" onclick="app.migrateLocalDataToSheet()">Migrate to sheet</button>
   </div>
@@ -639,8 +639,8 @@
       <span class="section-sub" id="table-count"></span>
     </div>
     <div class="capacity-legend" style="margin-bottom:12px">
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--yellow-bg);border:1px solid #fbbf24"></div>≥70% of 252 (≥177)</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--red-bg);border:1px solid #f87171"></div>≥80% of 252 (≥202)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--yellow-bg);border:1px solid #fbbf24"></div>‚â•70% of 252 (‚â•177)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--red-bg);border:1px solid #f87171"></div>‚â•80% of 252 (‚â•202)</div>
     </div>
     <div class="table-wrap">
       <table id="attendance-table">
@@ -672,7 +672,7 @@
         </div>
         <div class="field">
           <label>8:30 Attendance</label>
-          <input type="number" id="add-830" min="0" placeholder="—">
+          <input type="number" id="add-830" min="0" placeholder="‚Äî">
         </div>
         <div class="field">
           <label>8:30 Nursery</label>
@@ -680,7 +680,7 @@
         </div>
         <div class="field">
           <label>10:30 Attendance</label>
-          <input type="number" id="add-1030" min="0" placeholder="—">
+          <input type="number" id="add-1030" min="0" placeholder="‚Äî">
         </div>
         <div class="field">
           <label>10:30 Nursery</label>
@@ -688,7 +688,7 @@
         </div>
         <div class="field">
           <label>Spanish Attendance</label>
-          <input type="number" id="add-spanish" min="0" placeholder="—">
+          <input type="number" id="add-spanish" min="0" placeholder="‚Äî">
         </div>
         <div class="field">
           <label>Spanish Nursery</label>
@@ -704,18 +704,18 @@
         </div>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:10px">
-        Enter attendance <em>without</em> nursery in the Attendance fields, and enter nursery counts separately. Leave a service blank if it wasn't held. Data is saved in this browser — use "Export CSV" to back up or share.
+        Enter attendance <em>without</em> nursery in the Attendance fields, and enter nursery counts separately. Leave a service blank if it wasn't held. Data is saved in this browser ‚Äî use "Export CSV" to back up or share.
       </p>
       <p style="font-size:12px;color:var(--text-muted);margin-top:6px">
-        User-added entries: <span id="user-added-count">0</span> — <button class="ghost" onclick="app.clearUserEntries()" style="padding:2px 8px;font-size:12px">Clear all user entries</button>
+        User-added entries: <span id="user-added-count">0</span> ‚Äî <button class="ghost" onclick="app.clearUserEntries()" style="padding:2px 8px;font-size:12px">Clear all user entries</button>
       </p>
       <p id="restore-deleted-btn" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none">
-        Deleted entries: <span id="deleted-count">0</span> — <button class="ghost" onclick="app.restoreDeletedEntries()" style="padding:2px 8px;font-size:12px">Restore all deleted entries</button>
+        Deleted entries: <span id="deleted-count">0</span> ‚Äî <button class="ghost" onclick="app.restoreDeletedEntries()" style="padding:2px 8px;font-size:12px">Restore all deleted entries</button>
       </p>
       <p id="resume-migrate-btn" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none">
         <strong>Resume migration:</strong> your local browser has records that may not all be in the sheet yet.
         <button class="ghost" onclick="app.migrateLocalDataToSheet()" style="padding:2px 8px;font-size:12px">Push local data to sheet</button>
-        <br><span style="opacity:0.75">Safe to run anytime — existing rows are left alone (idempotent upsert).</span>
+        <br><span style="opacity:0.75">Safe to run anytime ‚Äî existing rows are left alone (idempotent upsert).</span>
       </p>
     </details>
   </section>
@@ -1354,7 +1354,7 @@ Sunday Service,March 29 2026,10:30 AM,English,233,
 Sunday Service,April 5 2026,10:30 AM,Bilingual,550,Easter Bilingual
 `;
 
-// Nursery data overrides (from Data.csv — authoritative split of attendance vs nursery).
+// Nursery data overrides (from Data.csv ‚Äî authoritative split of attendance vs nursery).
 // For these records, `count` is attendance WITHOUT nursery; `nursery` is the separate nursery count.
 // count + nursery = total attendance (matches the pre-split value from the first CSV, except where noted).
 const NURSERY_OVERRIDES = [
@@ -1405,9 +1405,9 @@ const SPECIAL_KEY = 'mefc_special_entries_v1';
 const SYNC_CACHE_KEY = 'mefc_sync_cache_v1';
 const SYNC_META_KEY  = 'mefc_sync_meta_v1';
 
-// Google Apps Script Web App URL — data source of truth when sheet has records.
+// Google Apps Script Web App URL ‚Äî data source of truth when sheet has records.
 const API_URL = 'https://script.google.com/macros/s/AKfycbxUFmlLsr0Ds7aAzg5WdNnNFcAfY5x35rfD31gse6wND-SlBLXqrnWs9kBrpVync52Z/exec';
-// OAuth Client ID from Google Cloud — used by Google Identity Services.
+// OAuth Client ID from Google Cloud ‚Äî used by Google Identity Services.
 const GOOGLE_CLIENT_ID = '245459877055-e39532ngb103tcjm0m2pgdgbn9ge0ua0.apps.googleusercontent.com';
 // Client-side view of the editor allowlist (for hiding edit UI pre-server check).
 // The server always re-validates via the ID token, so this is UX-only.
@@ -1466,7 +1466,7 @@ const app = {
 
   async init() {
     this._specialSet = this.loadSpecialKeys();
-    this.updateSyncStatus('loading', 'Loading…');
+    this.updateSyncStatus('loading', 'Loading‚Ä¶');
 
     // Try pulling from the sheet first. If the sheet is empty, fall back to
     // local data (seed + user entries) so editors can one-click-migrate.
@@ -1483,7 +1483,7 @@ const app = {
         this._sourceMode = 'sheet';
         this.records = this.recordsFromSheet(data.records);
       } else {
-        // Sheet is wired up but empty — show the local seed so the page
+        // Sheet is wired up but empty ‚Äî show the local seed so the page
         // still renders, and (if editor) offer migration.
         this._sheetHasRecords = false;
         this._sourceMode = 'local';
@@ -1564,7 +1564,7 @@ const app = {
     let label, tip;
     switch (mode) {
       case 'loading':
-        label = textOverride || 'Loading…';
+        label = textOverride || 'Loading‚Ä¶';
         tip = 'Fetching latest data from Google Sheet';
         break;
       case 'sheet':
@@ -1576,7 +1576,7 @@ const app = {
       case 'local':
         el.classList.add('local');
         label = 'Local only';
-        tip = 'Showing records from this browser. The shared sheet is empty — editors can migrate local data to it.';
+        tip = 'Showing records from this browser. The shared sheet is empty ‚Äî editors can migrate local data to it.';
         break;
       case 'offline':
         el.classList.add('offline');
@@ -1584,7 +1584,7 @@ const app = {
         tip = 'Could not reach the sheet. Showing the last cached copy.';
         break;
       case 'saving':
-        label = textOverride || 'Saving…';
+        label = textOverride || 'Saving‚Ä¶';
         tip = 'Pushing changes to the sheet';
         break;
       case 'error':
@@ -1604,7 +1604,7 @@ const app = {
   // sheet is reachable but empty. Hide it otherwise.
   //
   // Separately, show the "Resume migration" row in Admin whenever we're an
-  // editor AND the local browser has records the sheet doesn't fully cover —
+  // editor AND the local browser has records the sheet doesn't fully cover ‚Äî
   // handles the partial-migration case where chunks 1-2 landed and chunk 3
   // failed.
   refreshMigrateBanner() {
@@ -1633,7 +1633,7 @@ const app = {
 
   initGoogleSignIn() {
     if (!window.google?.accounts?.id) {
-      // GIS script hasn't loaded yet — retry shortly.
+      // GIS script hasn't loaded yet ‚Äî retry shortly.
       setTimeout(() => this.initGoogleSignIn(), 250);
       return;
     }
@@ -1650,7 +1650,7 @@ const app = {
 
   signIn() {
     if (!window.google?.accounts?.id) {
-      toast('Google sign-in is still loading — try again in a second', 'error');
+      toast('Google sign-in is still loading ‚Äî try again in a second', 'error');
       return;
     }
     // Prompt first; if it's blocked / dismissed, fall back to an explicit
@@ -1667,7 +1667,7 @@ const app = {
   // validate with the tokeninfo endpoint.
   _oauthPopupSignIn() {
     if (!window.google?.accounts?.oauth2) {
-      toast('Sign-in unavailable — please reload the page', 'error');
+      toast('Sign-in unavailable ‚Äî please reload the page', 'error');
       return;
     }
     // Id-token flow via the legacy Google Sign-In button rendered inline
@@ -1710,9 +1710,9 @@ const app = {
     if (avatarEl && this._user.picture) avatarEl.src = this._user.picture;
 
     if (!this._isEditor) {
-      toast(`Signed in as ${email} — view only (not on editor list)`, 'success');
+      toast(`Signed in as ${email} ‚Äî view only (not on editor list)`, 'success');
     } else {
-      toast(`Signed in as ${email} — editor access`, 'success');
+      toast(`Signed in as ${email} ‚Äî editor access`, 'success');
     }
 
     // Re-render so editor-only buttons show up, and re-evaluate migrate banner.
@@ -1745,7 +1745,7 @@ const app = {
   // If some of the local records are already in the sheet (the common case
   // for "resume migration" after a partial run), we diff them out first so
   // we only push what's actually missing. The upsert is still idempotent, so
-  // it's safe to re-push everything — but skipping known rows is faster and
+  // it's safe to re-push everything ‚Äî but skipping known rows is faster and
   // avoids rewriting every modified_at timestamp unnecessarily.
   async migrateLocalDataToSheet() {
     if (!this._isEditor) { toast('Editors only', 'error'); return; }
@@ -1774,7 +1774,7 @@ const app = {
     const records = allRecords.filter(r => !sheetKeys.has(`${r.date}|${r.time}|${r.type}`));
 
     if (records.length === 0) {
-      toast('Nothing new to push — the sheet already has everything the local browser has', 'success');
+      toast('Nothing new to push ‚Äî the sheet already has everything the local browser has', 'success');
       return;
     }
     const resume = sheetKeys.size > 0;
@@ -1783,7 +1783,7 @@ const app = {
       : `Push ${records.length} records from this browser to the shared Google Sheet?\n\nThis is a one-time migration. After this, everyone sees the same data.`;
     if (!confirm(prompt)) return;
 
-    this.updateSyncStatus('saving', `Migrating ${records.length} records…`);
+    this.updateSyncStatus('saving', `Migrating ${records.length} records‚Ä¶`);
     // Chunk modestly so even a slow Apps Script pass finishes within its
     // 6-minute execution limit. The upsert is idempotent, so if a chunk
     // fails partway, rerunning the migration safely resumes where it left off.
@@ -1798,7 +1798,7 @@ const app = {
           inserted += res.results.inserted || 0;
           updated  += res.results.updated  || 0;
         }
-        this.updateSyncStatus('saving', `Migrating ${Math.min(i + CHUNK, records.length)} / ${records.length}…`);
+        this.updateSyncStatus('saving', `Migrating ${Math.min(i + CHUNK, records.length)} / ${records.length}‚Ä¶`);
       }
       toast(`Migrated ${inserted + updated} records (${inserted} new, ${updated} updated)`, 'success');
       // Re-fetch so we're now in sheet mode.
@@ -1809,7 +1809,7 @@ const app = {
       // Pull the latest from the sheet so the user can see how far we got.
       try { await this.refreshFromSheet(); } catch {}
       toast(
-        `Migration stopped at ${i}/${records.length} — ${err.message}. ` +
+        `Migration stopped at ${i}/${records.length} ‚Äî ${err.message}. ` +
         `The upsert is idempotent; click "Migrate to sheet" again to resume.`,
         'error'
       );
@@ -1847,7 +1847,7 @@ const app = {
   loadAll() {
     const seed = parseCSV(SEED_CSV);
     const user = this.loadUserEntries();
-    // De-dupe by date+time+type — user entries win; nursery overrides replace seed
+    // De-dupe by date+time+type ‚Äî user entries win; nursery overrides replace seed
     const key = r => `${r.dateKey}|${r.time}|${r.type}`;
     const map = new Map();
     for (const r of seed) map.set(key(r), r);
@@ -1936,7 +1936,7 @@ const app = {
     if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
       const r = this.records.find(x => x.dateKey === dateKey && x.time === time && x.type === type);
       if (!r) return;
-      this.updateSyncStatus('saving', nowSpecial ? 'Marking special…' : 'Unmarking special…');
+      this.updateSyncStatus('saving', nowSpecial ? 'Marking special‚Ä¶' : 'Unmarking special‚Ä¶');
       try {
         await api.post({
           action: 'upsert',
@@ -1961,7 +1961,7 @@ const app = {
     }
   },
 
-  // Returns the records used for aggregation calcs — drops specials when the
+  // Returns the records used for aggregation calcs ‚Äî drops specials when the
   // Specials filter is set to "exclude" (the default).
   get aggregationRecords() {
     const mode = document.getElementById('filter-specials')?.value || 'exclude';
@@ -2056,18 +2056,37 @@ const app = {
     return last.map((r, i) => ({ x: i, y: effectiveCount(r), date: r.date }));
   },
 
-  // Combined attendance per Sunday, last N Sundays with any data.
-  combinedSeries(n) {
+  // Per-Sunday combined attendance + coverage flags. Bilingual rolls into
+  // the 10:30 slot for coverage purposes (matching dataCoverage()). Returns
+  // Map<dateKey, { sum, has830, has1030, hasSpanish, isFull }>.
+  combinedByDate(records) {
     const byDate = new Map();
-    for (const r of this.aggregationRecords) {
+    for (const r of records) {
       if (!r.hasCount) continue;
       if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
-      byDate.set(r.dateKey, (byDate.get(r.dateKey) || 0) + effectiveCount(r));
+      if (!byDate.has(r.dateKey)) {
+        byDate.set(r.dateKey, { sum: 0, has830: false, has1030: false, hasSpanish: false });
+      }
+      const entry = byDate.get(r.dateKey);
+      entry.sum += effectiveCount(r);
+      if (r.slot === '8:30') entry.has830 = true;
+      else if (r.slot === '10:30' || r.slot === 'Bilingual') entry.has1030 = true;
+      else if (r.slot === 'Spanish') entry.hasSpanish = true;
     }
+    for (const v of byDate.values()) v.isFull = v.has830 && v.has1030 && v.hasSpanish;
+    return byDate;
+  },
+
+  // Combined attendance per Sunday, last N Sundays with full coverage
+  // (8:30, 10:30/Bilingual, and Spanish all logged). Partial-coverage
+  // Sundays are dropped so trend math isn't biased by missing-service zeros.
+  combinedSeries(n) {
+    const byDate = this.combinedByDate(this.aggregationRecords);
     const sorted = Array.from(byDate.entries())
+      .filter(([, v]) => v.isFull)
       .sort((a, b) => new Date(a[0]) - new Date(b[0]))
       .slice(-n);
-    return sorted.map(([d, v], i) => ({ x: i, y: v, date: new Date(d + 'T00:00:00') }));
+    return sorted.map(([d, v], i) => ({ x: i, y: v.sum, date: new Date(d + 'T00:00:00') }));
   },
 
   yoyGrowthPct(slot) {
@@ -2098,8 +2117,8 @@ const app = {
     const regCombined = linearRegression(this.combinedSeries(12));
 
     const fmtSlope = (r) => {
-      if (!r) return '—';
-      const sign = r.slope >= 0 ? '+' : '−';
+      if (!r) return '‚Äî';
+      const sign = r.slope >= 0 ? '+' : '‚àí';
       return `${sign}${Math.abs(r.slope).toFixed(1)}/wk`;
     };
 
@@ -2109,19 +2128,19 @@ const app = {
     const yoyCombined = this.yoyGrowthPct('Combined');
 
     const fmtYoY = (y) => {
-      if (!y) return '—';
-      const sign = y.pct >= 0 ? '+' : '−';
+      if (!y) return '‚Äî';
+      const sign = y.pct >= 0 ? '+' : '‚àí';
       return `${sign}${Math.abs(y.pct).toFixed(1)}%`;
     };
-    const yoySub = (y) => y ? `${y.recent} now vs ${y.prior} yr ago` : 'Need ≥ 1 yr of data';
+    const yoySub = (y) => y ? `${y.recent} now vs ${y.prior} yr ago` : 'Need ‚â• 1 yr of data';
 
-    // Capacity forecast — when does each service hit 80% of CAP_COMFORT?
+    // Capacity forecast ‚Äî when does each service hit 80% of CAP_COMFORT?
     const forecast = (reg, label) => {
-      if (!reg) return { text: '—', sub: 'Not enough data' };
+      if (!reg) return { text: '‚Äî', sub: 'Not enough data' };
       const target = CAP_COMFORT * PCT_RED;
       // current = last regression value (x = n-1)
       const current = reg.predict(reg.n - 1);
-      if (current >= target) return { text: 'At cap', sub: `${label} already ≥ 80% of ${CAP_COMFORT}` };
+      if (current >= target) return { text: 'At cap', sub: `${label} already ‚â• 80% of ${CAP_COMFORT}` };
       if (reg.slope <= 0.1) return { text: 'Stable / declining', sub: `${label} not trending toward cap` };
       const weeksOut = (target - current) / reg.slope;
       if (weeksOut > 52 * 3) return { text: '> 3 yrs out', sub: `${label} trending toward cap slowly` };
@@ -2134,21 +2153,21 @@ const app = {
     const fc1030 = forecast(reg1030, '10:30');
 
     const yoyHelp = (svc) =>
-      `Compares the average attendance over the most recent 12 Sundays to the same 12-week window one year ago, for ${svc}. A positive number means we're growing vs last year; negative means we're down. "Need ≥ 1 yr of data" means we don't have enough history yet.`;
+      `Compares the average attendance over the most recent 12 Sundays to the same 12-week window one year ago, for ${svc}. A positive number means we're growing vs last year; negative means we're down. "Need ‚â• 1 yr of data" means we don't have enough history yet.`;
     const rateHelp = (svc) =>
-      `The slope of the best-fit line through the last 12 Sundays of ${svc} attendance — i.e., on average, how many more (or fewer) people show up each week recently. R² is a trust score 0–1: close to 1 means the data really does follow that trend; close to 0 means it's too noisy to read much into the slope.`;
+      `The slope of the best-fit line through the last 12 Sundays of ${svc} attendance ‚Äî i.e., on average, how many more (or fewer) people show up each week recently. R¬≤ is a trust score 0‚Äì1: close to 1 means the data really does follow that trend; close to 0 means it's too noisy to read much into the slope.`;
     const forecastHelp = (svc) =>
       `If the recent ${svc} weekly rate keeps up, when does the trend line cross 80% of ${CAP_COMFORT} (~ ${Math.round(CAP_COMFORT * PCT_RED)} people)? "At cap" means we're there already. "Stable / declining" means the trend isn't heading toward capacity. ">3 yrs out" means capacity isn't a near-term concern for ${svc}.`;
 
     const coverage = this.dataCoverage(52);
     const coverageLabel = coverage.sundays === 0
-      ? '—'
+      ? '‚Äî'
       : `${coverage.pctFull}%`;
     const coverageSub = coverage.sundays === 0
       ? 'No Sundays in window'
-      : `${coverage.full}/${coverage.sundays} Sundays have all 3 services${coverage.partial ? ` · ${coverage.partial} partial` : ''}${coverage.missing ? ` · ${coverage.missing} missing` : ''}`;
+      : `${coverage.full}/${coverage.sundays} Sundays have all 3 services${coverage.partial ? ` ¬∑ ${coverage.partial} partial` : ''}${coverage.missing ? ` ¬∑ ${coverage.missing} missing` : ''}`;
     const coverageHelp =
-      `Percentage of Sundays in the last 12 months that have attendance logged for all three services (8:30, 10:30, and Spanish). Partial means some but not all services recorded; missing means no data at all. Low coverage means averages and trends could be biased — if Sundays with missing data aren't random, the "typical" number is based on only the Sundays that happened to get logged.`;
+      `Percentage of Sundays in the last 12 months that have attendance logged for all three services (8:30, 10:30, and Spanish). Partial means some but not all services recorded; missing means no data at all. Low coverage means averages and trends could be biased ‚Äî if Sundays with missing data aren't random, the "typical" number is based on only the Sundays that happened to get logged.`;
     const coverageAccent =
       coverage.pctFull >= 85 ? 'c-combined' : (coverage.pctFull >= 60 ? 'c-1030' : 'c-spanish');
 
@@ -2156,10 +2175,10 @@ const app = {
       widget('Combined YoY Growth', fmtYoY(yoyCombined),  yoySub(yoyCombined), 'c-combined', yoyHelp('all services combined')),
       widget('8:30 YoY Growth',     fmtYoY(yoy830),       yoySub(yoy830),      'c-830',      yoyHelp('the 8:30 service')),
       widget('10:30 YoY Growth',    fmtYoY(yoy1030),      yoySub(yoy1030),     'c-1030',     yoyHelp('the 10:30 service')),
-      widget('Combined Weekly Rate', fmtSlope(regCombined), regCombined ? `R² = ${regCombined.r2.toFixed(2)}` : '', 'c-combined', rateHelp('all services combined')),
-      widget('8:30 Weekly Rate',     fmtSlope(reg830),     reg830     ? `R² = ${reg830.r2.toFixed(2)}` : '',     'c-830',      rateHelp('the 8:30 service')),
-      widget('10:30 Weekly Rate',    fmtSlope(reg1030),    reg1030    ? `R² = ${reg1030.r2.toFixed(2)}` : '',    'c-1030',     rateHelp('the 10:30 service')),
-      widget('Spanish Weekly Rate',  fmtSlope(regSp),      regSp      ? `R² = ${regSp.r2.toFixed(2)}` : '',      'c-spanish',  rateHelp('the Spanish service')),
+      widget('Combined Weekly Rate', fmtSlope(regCombined), regCombined ? `R¬≤ = ${regCombined.r2.toFixed(2)}` : '', 'c-combined', rateHelp('all services combined')),
+      widget('8:30 Weekly Rate',     fmtSlope(reg830),     reg830     ? `R¬≤ = ${reg830.r2.toFixed(2)}` : '',     'c-830',      rateHelp('the 8:30 service')),
+      widget('10:30 Weekly Rate',    fmtSlope(reg1030),    reg1030    ? `R¬≤ = ${reg1030.r2.toFixed(2)}` : '',    'c-1030',     rateHelp('the 10:30 service')),
+      widget('Spanish Weekly Rate',  fmtSlope(regSp),      regSp      ? `R¬≤ = ${regSp.r2.toFixed(2)}` : '',      'c-spanish',  rateHelp('the Spanish service')),
       widget('8:30 Cap Forecast',   fc830.text,           fc830.sub, 'c-830',  forecastHelp('8:30')),
       widget('10:30 Cap Forecast',  fc1030.text,          fc1030.sub, 'c-1030', forecastHelp('10:30')),
       widget('Data Coverage (12 mo)', coverageLabel, coverageSub, coverageAccent, coverageHelp),
@@ -2184,7 +2203,7 @@ const app = {
     }
 
     // Tally service coverage per Sunday from the full record set (not
-    // aggregationRecords — completeness is about raw data, not stats math)
+    // aggregationRecords ‚Äî completeness is about raw data, not stats math)
     const bySunday = new Map();
     for (const dk of sundaySet) bySunday.set(dk, { '8:30': false, '10:30': false, Spanish: false });
     for (const r of this.records) {
@@ -2216,7 +2235,7 @@ const app = {
     this.anomalies = new Map();
     for (const slot of ['8:30', '10:30', 'Spanish', 'Bilingual']) {
       // Use aggregationRecords so known-special services don't get flagged as
-      // "unusually high" every Easter/Christmas — and so their inflated values
+      // "unusually high" every Easter/Christmas ‚Äî and so their inflated values
       // don't pull the rolling mean up and mask nearby real anomalies.
       const rows = this.aggregationRecords
         .filter(r => r.slot === slot && r.hasCount && effectiveCount(r) > 0)
@@ -2230,7 +2249,7 @@ const app = {
         const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
         const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
         const sigma = Math.sqrt(variance);
-        if (sigma < 5) continue; // uniform window → don't flag noise
+        if (sigma < 5) continue; // uniform window ‚Üí don't flag noise
         const v = effectiveCount(rows[i]);
         const z = (v - mean) / sigma;
         if (Math.abs(z) >= 2) {
@@ -2252,7 +2271,7 @@ const app = {
     const within12mo = all.filter(r => r.date >= yearAgo && r.date <= now);
 
     // Total services tracked (valid, non-zero counts, using filtered set).
-    // This one stays on `filtered` — it's a "how many rows are in your filter
+    // This one stays on `filtered` ‚Äî it's a "how many rows are in your filter
     // view" counter, not an average, so including specials is fine.
     const totalTracked = this.filtered.filter(r => r.hasCount).length;
 
@@ -2270,17 +2289,17 @@ const app = {
     const html = [
       widget('Services Tracked', totalTracked, 'In current filter range', '',
         'The total number of individual service records in your filter range. One Sunday with all three services held counts as 3. Use it to sanity-check that no data is missing for a filtered window.'),
-      widget('8:30 Services ≥75% (12 mo)', cnt830, `Attendance > ${Math.round(threshold)}`, 'c-830',
+      widget('8:30 Services ‚â•75% (12 mo)', cnt830, `Attendance > ${Math.round(threshold)}`, 'c-830',
         `How many 8:30 Sundays in the last 12 months had attendance above 75% of ${CAP_COMFORT} (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 8:30 services.`),
-      widget('10:30 Services ≥75% (12 mo)', cnt1030, `Attendance > ${Math.round(threshold)}`, 'c-1030',
+      widget('10:30 Services ‚â•75% (12 mo)', cnt1030, `Attendance > ${Math.round(threshold)}`, 'c-1030',
         `How many 10:30 Sundays in the last 12 months had attendance above 75% of ${CAP_COMFORT} (i.e., more than ${Math.round(threshold)} people). A count of "crowded" 10:30 services.`),
-      widget('8:30 Avg (Last 12 wks)', avg830 || '—', avg830 ? pctLabel(avg830) : '', 'c-830',
+      widget('8:30 Avg (Last 12 wks)', avg830 || '‚Äî', avg830 ? pctLabel(avg830) : '', 'c-830',
         `Simple average attendance across the most recent 12 Sundays that had 8:30 data. The sub-text shows that average as a percent of the ${CAP_COMFORT}-seat comfortable capacity.`),
-      widget('10:30 Avg (Last 12 wks)', avg1030 || '—', avg1030 ? pctLabel(avg1030) : '', 'c-1030',
+      widget('10:30 Avg (Last 12 wks)', avg1030 || '‚Äî', avg1030 ? pctLabel(avg1030) : '', 'c-1030',
         `Simple average attendance across the most recent 12 Sundays that had 10:30 data. The sub-text shows that average as a percent of the ${CAP_COMFORT}-seat comfortable capacity.`),
-      widget('Spanish Avg (Last 12 wks)', avgSpanish || '—', 'Per service', 'c-spanish',
+      widget('Spanish Avg (Last 12 wks)', avgSpanish || '‚Äî', 'Per service', 'c-spanish',
         'Simple average attendance across the most recent 12 Sundays that had Spanish service data.'),
-      widget('Combined Avg (Last 12 wks)', avgCombined || '—', 'Total per Sunday', 'c-combined',
+      widget('Combined Avg (Last 12 wks)', avgCombined || '‚Äî', 'Total per Sunday', 'c-combined',
         'Average of (8:30 + 10:30 + Spanish) per Sunday, over the most recent 12 Sundays with any data. This is the "how many people came to church that day" number.'),
     ].join('');
     document.getElementById('widgets').innerHTML = html;
@@ -2297,26 +2316,23 @@ const app = {
   },
 
   combinedRollingAverage(n) {
-    // Group by Sunday date, sum counts across services, then average last n Sundays with any data
-    const byDate = new Map();
-    for (const r of this.aggregationRecords) {
-      if (!r.hasCount) continue;
-      if (!['8:30', '10:30', 'Spanish', 'Bilingual'].includes(r.slot)) continue;
-      const key = r.dateKey;
-      byDate.set(key, (byDate.get(key) || 0) + effectiveCount(r));
-    }
+    // Average combined attendance over the last n Sundays with full
+    // coverage. Partial Sundays would otherwise pull the average down by
+    // the missing services' counts (~1/3 per missing service).
+    const byDate = this.combinedByDate(this.aggregationRecords);
     const sorted = Array.from(byDate.entries())
+      .filter(([, v]) => v.isFull)
       .sort((a, b) => new Date(b[0]) - new Date(a[0]))
       .slice(0, n);
     if (sorted.length === 0) return 0;
-    const sum = sorted.reduce((s, [, v]) => s + v, 0);
+    const sum = sorted.reduce((s, [, v]) => s + v.sum, 0);
     return Math.round(sum / sorted.length);
   },
 
   // ---------- Charts ----------
   renderTimeseries() {
     // byDate tracks both the count and whether that slot's record is special,
-    // so we can render special points as stars (matching the ★ badge in the
+    // so we can render special points as stars (matching the ‚òÖ badge in the
     // table). Bilingual rows occupy the 10:30 slot visually.
     const byDate = new Map();
     for (const r of this.filtered) {
@@ -2326,26 +2342,31 @@ const app = {
         byDate.set(r.dateKey, {
           '8:30': null, '10:30': null, 'Spanish': null,
           sp830: false, sp1030: false, spSpanish: false,
+          has830: false, has1030: false, hasSpanish: false,
         });
       }
       const entry = byDate.get(r.dateKey);
       entry[r.slot] = effectiveCount(r);
       const isSp = this.isSpecialRecord(r);
-      if (r.slot === '8:30') entry.sp830 = isSp;
-      else if (r.slot === '10:30' || r.slot === 'Bilingual') entry.sp1030 = isSp;
-      else if (r.slot === 'Spanish') entry.spSpanish = isSp;
+      if (r.slot === '8:30') { entry.sp830 = isSp; entry.has830 = true; }
+      else if (r.slot === '10:30' || r.slot === 'Bilingual') { entry.sp1030 = isSp; entry.has1030 = true; }
+      else if (r.slot === 'Spanish') { entry.spSpanish = isSp; entry.hasSpanish = true; }
     }
     const dates = Array.from(byDate.keys()).sort();
     const labels = dates.map(d => formatShortDate(new Date(d + 'T00:00:00')));
     const s830 = dates.map(d => byDate.get(d)['8:30']);
     const s1030 = dates.map(d => byDate.get(d)['10:30']);
     const sSp = dates.map(d => byDate.get(d)['Spanish']);
+    // Total is null on partial-coverage Sundays so the Total trend regression
+    // (and the visible Total line, when toggled on) isn't biased by treating
+    // missing services as zeros. Bilingual counts toward 10:30 coverage.
     const sTotal = dates.map(d => {
       const v = byDate.get(d);
-      return (v['8:30'] || 0) + (v['10:30'] || 0) + (v['Spanish'] || 0);
+      if (!(v.has830 && v.has1030 && v.hasSpanish)) return null;
+      return (v['8:30'] || 0) + (v['10:30'] || 0) + (v['Bilingual'] || 0) + (v['Spanish'] || 0);
     });
 
-    // Per-point style arrays — 'star' for specials, 'circle' otherwise.
+    // Per-point style arrays ‚Äî 'star' for specials, 'circle' otherwise.
     // Star points need a larger radius to be legible.
     const styleFor = (flags) => flags.map(f => f ? 'star' : 'circle');
     const radiusFor = (flags, base) => flags.map(f => f ? 6 : base);
@@ -2459,11 +2480,11 @@ const app = {
                 { label: 'Spanish', sp: spSpFlags[i] },
               ].filter(f => f.sp);
               const specialsNote = flags.length
-                ? `\n  ★ Special: ${flags.map(f => f.label).join(', ')} (excluded from stats)`
+                ? `\n  ‚òÖ Special: ${flags.map(f => f.label).join(', ')} (excluded from stats)`
                 : '';
               if (item.dataset.label === '8:30 English' || item.dataset.label === '10:30 English') {
                 const v = item.parsed.y;
-                return `  ${((v / CAP_COMFORT) * 100).toFixed(1)}% of ${CAP_COMFORT} · ${((v / CAP_EXPANDED) * 100).toFixed(1)}% of ${CAP_EXPANDED}${specialsNote}`;
+                return `  ${((v / CAP_COMFORT) * 100).toFixed(1)}% of ${CAP_COMFORT} ¬∑ ${((v / CAP_EXPANDED) * 100).toFixed(1)}% of ${CAP_EXPANDED}${specialsNote}`;
               }
               return specialsNote.trim() ? specialsNote.trim() : '';
             } }
@@ -2582,7 +2603,7 @@ const app = {
       .sort((a, b) => b.date - a.date || a.time.localeCompare(b.time));
 
     // Limit to most recent 2000 for performance; user can filter to narrow.
-    // Bumped from 500 so older years don't get sliced off the bottom — at
+    // Bumped from 500 so older years don't get sliced off the bottom ‚Äî at
     // ~3 services/week, 2000 rows covers ~13 years of history.
     const LIMIT = 2000;
     const display = rows.slice(0, LIMIT);
@@ -2602,23 +2623,23 @@ const app = {
       }
       const serviceLabel = serviceDisplayName(r);
       const attendanceCell = r.hasCount
-        ? (r.count === null || r.count === 0 ? '<span class="muted">—</span>' : r.count)
-        : (r.count === 0 ? '<span class="muted">no service</span>' : '<span class="muted">—</span>');
-      const nurseryCell = r.nursery > 0 ? r.nursery : '<span class="muted">—</span>';
-      const totalCell = r.hasCount ? total : '<span class="muted">—</span>';
-      const pct248Cell = (usesWorshipCenter && r.hasCount) ? pct248.toFixed(1) + '%' : '<span class="muted">—</span>';
-      const pct284Cell = (usesWorshipCenter && r.hasCount) ? pct284.toFixed(1) + '%' : '<span class="muted">—</span>';
+        ? (r.count === null || r.count === 0 ? '<span class="muted">‚Äî</span>' : r.count)
+        : (r.count === 0 ? '<span class="muted">no service</span>' : '<span class="muted">‚Äî</span>');
+      const nurseryCell = r.nursery > 0 ? r.nursery : '<span class="muted">‚Äî</span>';
+      const totalCell = r.hasCount ? total : '<span class="muted">‚Äî</span>';
+      const pct248Cell = (usesWorshipCenter && r.hasCount) ? pct248.toFixed(1) + '%' : '<span class="muted">‚Äî</span>';
+      const pct284Cell = (usesWorshipCenter && r.hasCount) ? pct284.toFixed(1) + '%' : '<span class="muted">‚Äî</span>';
       const isSpecial = this.isSpecialRecord(r);
       if (isSpecial) rowClass += ' is-special';
       const delBtn = `<button class="row-delete" title="Delete this entry" onclick="app.deleteEntry('${r.dateKey}','${r.time}','${r.type}')">&times;</button>`;
       const editBtn = `<button class="row-edit" title="Edit this entry (change date, time, count, etc.)" onclick="app.openEditModal('${r.dateKey}','${r.time}','${r.type}')">&#9998;</button>`;
-      const specialBtn = `<button class="row-special${isSpecial ? ' is-special' : ''}" title="${isSpecial ? 'Unmark as special service' : 'Mark as special service (Easter, Christmas, etc.). Excluded from averages/trends.'}" onclick="app.toggleSpecial('${r.dateKey}','${r.time}','${r.type}')">${isSpecial ? '★' : '☆'}</button>`;
+      const specialBtn = `<button class="row-special${isSpecial ? ' is-special' : ''}" title="${isSpecial ? 'Unmark as special service' : 'Mark as special service (Easter, Christmas, etc.). Excluded from averages/trends.'}" onclick="app.toggleSpecial('${r.dateKey}','${r.time}','${r.type}')">${isSpecial ? '‚òÖ' : '‚òÜ'}</button>`;
       const anomaly = this.anomalies?.get(`${r.dateKey}|${r.time}|${r.type}`);
       const anomalyBadge = anomaly
-        ? `<span class="anomaly-badge ${anomaly.z > 0 ? 'high' : 'low'}" title="${anomaly.z > 0 ? 'Unusually high' : 'Unusually low'}: ${anomaly.value} vs 12-wk avg ${anomaly.mean} (±${anomaly.sigma}) — ${anomaly.z.toFixed(1)}σ">⚠ ${anomaly.z > 0 ? 'high' : 'low'}</span> `
+        ? `<span class="anomaly-badge ${anomaly.z > 0 ? 'high' : 'low'}" title="${anomaly.z > 0 ? 'Unusually high' : 'Unusually low'}: ${anomaly.value} vs 12-wk avg ${anomaly.mean} (¬±${anomaly.sigma}) ‚Äî ${anomaly.z.toFixed(1)}œÉ">‚ö† ${anomaly.z > 0 ? 'high' : 'low'}</span> `
         : '';
       const specialBadge = isSpecial
-        ? `<span class="special-badge" title="Marked as a special service — excluded from averages and trends while the Specials filter is set to Exclude.">★ special</span> `
+        ? `<span class="special-badge" title="Marked as a special service ‚Äî excluded from averages and trends while the Specials filter is set to Exclude.">‚òÖ special</span> `
         : '';
       return `<tr class="${rowClass}">
         <td>${formatLongDate(r.date)}</td>
@@ -2702,7 +2723,7 @@ const app = {
   cancelOverwrite() {
     document.getElementById('conflict-modal').classList.remove('show');
     this._pendingEntries = null;
-    toast('Cancelled — existing data kept', 'error');
+    toast('Cancelled ‚Äî existing data kept', 'error');
   },
 
   confirmOverwrite() {
@@ -2716,10 +2737,10 @@ const app = {
   async commitEntries(newEntries, isOverwrite) {
     // Sheet mode: push writes to the server, then re-pull.
     if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
-      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      if (!this._isEditor) { toast('Editors only ‚Äî please sign in', 'error'); return; }
       const records = [];
       for (const e of newEntries) {
-        // If this is an overwrite that changes the primary key (e.g. Bilingual → English),
+        // If this is an overwrite that changes the primary key (e.g. Bilingual ‚Üí English),
         // we need to soft-delete the old record on the server too.
         if (isOverwrite) {
           const old = findConflict(this.records, e);
@@ -2740,7 +2761,7 @@ const app = {
           is_special: false, is_deleted: false,
         });
       }
-      this.updateSyncStatus('saving', `Saving ${newEntries.length}…`);
+      this.updateSyncStatus('saving', `Saving ${newEntries.length}‚Ä¶`);
       try {
         await api.post({ action: 'batch_upsert', records });
         ['add-830','add-1030','add-spanish','add-830-nursery','add-1030-nursery','add-spanish-nursery','add-notes']
@@ -2765,7 +2786,7 @@ const app = {
 
     // Make sure any new entry's own key is NOT in the deleted set (re-adding
     // should un-delete), and if this overwrite replaces an existing record
-    // with a different key (e.g. Bilingual→English on the same slot), hide the
+    // with a different key (e.g. Bilingual‚ÜíEnglish on the same slot), hide the
     // old record by adding its key to the deleted set.
     const deleted = this.loadDeletedKeys();
     for (const e of newEntries) {
@@ -2790,13 +2811,13 @@ const app = {
 
   async deleteEntry(dateKey, time, type) {
     const r = this.records.find(x => x.dateKey === dateKey && x.time === time && x.type === type);
-    const label = r ? `${formatLongDate(r.date)} — ${serviceDisplayName(r)}` : `${dateKey} ${time} ${type}`;
+    const label = r ? `${formatLongDate(r.date)} ‚Äî ${serviceDisplayName(r)}` : `${dateKey} ${time} ${type}`;
     if (!confirm(`Delete this entry?\n\n${label}\n\nYou can restore it later from the admin section.`)) return;
 
     // Sheet mode: soft-delete on the server so other viewers lose sight of it too.
     if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
-      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
-      this.updateSyncStatus('saving', 'Deleting…');
+      if (!this._isEditor) { toast('Editors only ‚Äî please sign in', 'error'); return; }
+      this.updateSyncStatus('saving', 'Deleting‚Ä¶');
       try {
         await api.post({
           action: 'delete',
@@ -2847,7 +2868,7 @@ const app = {
     document.getElementById('edit-nursery').value = r.nursery || '';
     document.getElementById('edit-notes').value = r.notes || '';
     document.getElementById('edit-original-label').textContent =
-      `Original: ${formatLongDate(r.date)} — ${serviceDisplayName(r)} (${r.hasCount ? r.count : 'no count'})`;
+      `Original: ${formatLongDate(r.date)} ‚Äî ${serviceDisplayName(r)} (${r.hasCount ? r.count : 'no count'})`;
     document.getElementById('edit-modal').classList.add('show');
   },
 
@@ -2893,13 +2914,13 @@ const app = {
         `${x.dateKey}|${x.time}|${x.type}` === newKey
       );
       if (collision) {
-        if (!confirm(`An entry already exists at:\n\n${formatLongDate(collision.date)} — ${serviceDisplayName(collision)}\n\nOverwrite it?`)) return;
+        if (!confirm(`An entry already exists at:\n\n${formatLongDate(collision.date)} ‚Äî ${serviceDisplayName(collision)}\n\nOverwrite it?`)) return;
       }
     }
 
     // Sheet mode: send upsert (and optionally soft-delete the old key).
     if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
-      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      if (!this._isEditor) { toast('Editors only ‚Äî please sign in', 'error'); return; }
       // Preserve the special flag across a key change.
       const wasSpecial = this._specialSet?.has(oldKey) || false;
       const records = [];
@@ -2926,7 +2947,7 @@ const app = {
       document.getElementById('edit-modal').classList.remove('show');
       this._editOriginal = null;
 
-      this.updateSyncStatus('saving', 'Saving edit…');
+      this.updateSyncStatus('saving', 'Saving edit‚Ä¶');
       try {
         await api.post({ action: 'batch_upsert', records });
         await this.refreshFromSheet();
@@ -2977,13 +2998,13 @@ const app = {
     // Sheet mode: pull the full sheet (including soft-deleted rows), ask the
     // server to flip is_deleted=false on each, then re-fetch.
     if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
-      if (!this._isEditor) { toast('Editors only — please sign in', 'error'); return; }
+      if (!this._isEditor) { toast('Editors only ‚Äî please sign in', 'error'); return; }
       try {
         const data = await api.get();
         const deletedRows = (data.records || []).filter(r => toBoolish(r.is_deleted));
         if (deletedRows.length === 0) { toast('Nothing to restore on the server', 'error'); return; }
         if (!confirm(`Restore ${deletedRows.length} soft-deleted entr${deletedRows.length === 1 ? 'y' : 'ies'} from the sheet?`)) return;
-        this.updateSyncStatus('saving', `Restoring ${deletedRows.length}…`);
+        this.updateSyncStatus('saving', `Restoring ${deletedRows.length}‚Ä¶`);
         const records = deletedRows.map(r => ({
           date: String(r.date).slice(0, 10),
           time: r.time, type: r.type,
@@ -3017,7 +3038,7 @@ const app = {
   },
 
   clearUserEntries() {
-    // In sheet mode there's no separate "user entries" bucket — everything
+    // In sheet mode there's no separate "user entries" bucket ‚Äî everything
     // lives in the sheet. Nothing to clear locally beyond the cache.
     if (this._sourceMode === 'sheet' || this._sourceMode === 'offline') {
       toast('In shared-sheet mode, individual entries are deleted from the table rows', 'error');
@@ -3089,7 +3110,7 @@ function useNursery() {
 }
 
 // Apps Script serializes booleans as native bools from JSON but legacy rows
-// may have "TRUE"/"FALSE" strings — accept either.
+// may have "TRUE"/"FALSE" strings ‚Äî accept either.
 function toBoolish(v) {
   if (v === true) return true;
   if (v === false || v == null || v === '') return false;
@@ -3157,7 +3178,7 @@ function parseCSV(csv) {
 }
 
 function splitCSVLine(line) {
-  // Simple CSV split — doesn't handle quoted commas but our data doesn't have them
+  // Simple CSV split ‚Äî doesn't handle quoted commas but our data doesn't have them
   return line.split(',');
 }
 
@@ -3237,7 +3258,7 @@ function weekOfYear(d) {
 }
 
 function formatCountCell(count, nursery) {
-  const c = (count === null || count === undefined) ? '—' : count;
+  const c = (count === null || count === undefined) ? '‚Äî' : count;
   const n = nursery || 0;
   if (n > 0) return `${c} <span style="color:var(--text-muted);font-weight:400">+ ${n} nursery</span>`;
   return String(c);
@@ -3267,7 +3288,7 @@ function widget(label, value, sub, accentClass, help) {
 function pctLabel(v) {
   const pct = ((v / CAP_COMFORT) * 100).toFixed(1);
   const mode = useNursery() ? 'with nursery' : 'without nursery';
-  return `${pct}% of ${CAP_COMFORT} · ${mode}`;
+  return `${pct}% of ${CAP_COMFORT} ¬∑ ${mode}`;
 }
 
 function getVar(name) {
